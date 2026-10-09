@@ -1,0 +1,33 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: mysql-ex05
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: ecole
+      MYSQL_USER: alexandre
+      MYSQL_PASSWORD: userpass
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - reseau-ex05
+
+  adminer:
+    image: adminer
+    container_name: adminer-ex05
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+    networks:
+      - reseau-ex05
+
+volumes:
+  mysql-data:
+    external: true
+
+networks:
+  reseau-ex05:
+    external: true

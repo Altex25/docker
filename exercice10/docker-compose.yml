@@ -1,0 +1,51 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: notes-db
+    restart: unless-stopped
+    environment:
+      # Méthode 1 : depuis le fichier .env
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: notes-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      # Méthode 3 : avec valeur par défaut
+      - "${APP_PORT:-8080}:8080"
+    environment:
+      # Méthode 1 : depuis le fichier .env
+      APP_NAME: ${APP_NAME}
+      APP_VERSION: ${APP_VERSION}
+      APP_ENV: ${APP_ENV}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      # Méthode 2 : valeur en dur
+      DB_HOST: db
+      DB_PORT: 5432
+      UPLOAD_PATH: /app/uploads
+      # Méthode 3 : avec valeur par défaut
+      MAX_FILE_SIZE: ${MAX_FILE_SIZE:-5MB}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SHOW_SQL: ${SHOW_SQL:-false}
+    volumes:
+      - uploads:/app/uploads
+
+volumes:
+  pg_data:
+  uploads:
