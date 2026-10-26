@@ -1,0 +1,11 @@
+Plateforme linux/arm64, registre localhost:5050
+mode   | scénario                          |  durée |  cache | exécutés | étapes exécutées
+min    | runner A : build + --cache-to      |    8.9s |      2 |       12 | builder 2/5,builder 3/5,builder 4/5,builder 5/5,runtime 2/5,runtime 3/5,runtime 4/5,runtime 5/5,test 2/5,test 3/5,test 4/5,test 5/5
+       | runner B neuf : --cache-from       |    2.6s |     14 |        0 | aucune
+       | runner C neuf : code modifié      |    8.6s |      5 |        9 | builder 2/5,builder 3/5,builder 4/5,builder 5/5,runtime 5/5,test 2/5,test 3/5,test 4/5,test 5/5
+       cache exporté : 51 Mo
+max    | runner A : build + --cache-to      |    8.7s |      2 |       12 | builder 2/5,builder 3/5,builder 4/5,builder 5/5,runtime 2/5,runtime 3/5,runtime 4/5,runtime 5/5,test 2/5,test 3/5,test 4/5,test 5/5
+       | runner B neuf : --cache-from       |    2.1s |     14 |        0 | aucune
+       | runner C neuf : code modifié      |    3.3s |     10 |        4 | runtime 5/5,test 3/5,test 4/5,test 5/5
+       cache exporté : 73 Mo
+aucun  | runner neuf sans cache distant     |    7.6s |      2 |       12 | builder 2/5,builder 3/5,builder 4/5,builder 5/5,runtime 2/5,runtime 3/5,runtime 4/5,runtime 5/5,test 2/5,test 3/5,test 4/5,test 5/5

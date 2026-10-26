@@ -1,0 +1,27 @@
+# Hôte : arm64 (Mac Apple Silicon) -> arm64 natif, amd64 émulé (QEMU dans la VM Colima)
+linux/arm64 --no-cache : 5.3 s | pip install builder : 0.8s | tests : 2 passed in 0.03s
+linux/amd64 --no-cache : 23.2 s | pip install builder : 3.8s | tests : 2 passed in 0.21s
+
+# Caches pip isolés par architecture (id=pip-${TARGETARCH})
+cached mount /root/.cache/pip from exec /bin/sh -c pip install -r requirements.txt with id "/pip-amd64"
+cached mount /root/.cache/pip from exec /bin/sh -c pip install -r requirements.txt with id "/pip-arm64"
+
+# Sans --push ni -o : le résultat reste dans le cache du builder
+WARNING: No output specified with docker-container driver. Build result will only remain in the build cache. To push result image into registry use --push or to load image into docker use --load
+
+# --load multi-plateforme (possible ici car Colima utilise le containerd image store)
+#37 importing to docker
+IMAGE                ID             DISK USAGE   CONTENT SIZE   EXTRA
+shop-worker:multi    3dcc5dfdcf96        288MB          103MB        
+├─ linux/amd64       d8a8ddc6f922       51.2MB         51.2MB        
+└─ linux/arm64       c3ec46048f4d        237MB         51.4MB        
+
+
+# Exécution de chaque variante
+linux/arm64 : aarch64 3.12.15
+linux/amd64 : x86_64 3.12.15
+
+# Émulateur utilisé (dans la VM Colima)
+$ colima ssh -- grep -E "interpreter|flags" /proc/sys/fs/binfmt_misc/qemu-x86_64
+interpreter /usr/bin/qemu-x86_64
+flags: POCF

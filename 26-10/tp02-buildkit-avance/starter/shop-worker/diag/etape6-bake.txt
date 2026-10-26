@@ -1,0 +1,41 @@
+$ VERSION=1.0 GIT_SHA=6c6d9a7 docker buildx bake worker-test
+#8 ERROR: failed to configure registry cache importer: localhost:5050/cache:worker: not found
+#29 0.148 All checks passed!
+#29 1.175 2 passed in 0.19s
+VERSION=1.0 GIT_SHA=$SHA docker buildx bake --progress=plain worker-test  0.12s user 0.11s system 0% cpu 23.242 total
+
+$ VERSION=1.0 GIT_SHA=6c6d9a7 docker buildx bake --set *.platform=linux/arm64 --load
+#9 ERROR: failed to configure registry cache importer: localhost:5050/cache:worker: not found
+#29 ERROR: failed to configure registry cache importer: localhost:5050/cache:api: not found
+VERSION=1.0 GIT_SHA=$SHA docker buildx bake --progress=plain --set  --load  0.54s user 0.63s system 13% cpu 8.519 total
+
+$ docker image ls --filter reference="localhost:5050/*:1.0"
+IMAGE                            ID             DISK USAGE   CONTENT SIZE   EXTRA
+localhost:5050/shop-worker:1.0   c4e5efc4fd1b        237MB         51.4MB        
+localhost:5050/shopapi:1.0       73d6d836a88f        212MB         51.6MB        
+
+$ docker inspect localhost:5050/shop-worker:1.0 --format '{{json .Config.Labels}}' | jq -c
+{"org.opencontainers.image.base.name":"docker.io/library/python:3.12.15-slim-trixie","org.opencontainers.image.description":"Worker de traitement des commandes Shop SAS","org.opencontainers.image.revision":"6c6d9a7","org.opencontainers.image.source":"https://github.com/Altex25/docker","org.opencontainers.image.title":"shop-worker","org.opencontainers.image.vendor":"Shop SAS","org.opencontainers.image.version":"1.0"}
+$ docker inspect localhost:5050/shopapi:1.0 --format '{{json .Config.Labels}}' | jq -c
+{"org.opencontainers.image.base.name":"docker.io/library/node:20.20.2-alpine3.23","org.opencontainers.image.description":"API catalogue produits Shop SAS","org.opencontainers.image.revision":"6c6d9a7","org.opencontainers.image.source":"https://github.com/Altex25/docker","org.opencontainers.image.title":"shopapi","org.opencontainers.image.vendor":"Shop SAS","org.opencontainers.image.version":"1.0"}
+
+
+$ VERSION=1.0 GIT_SHA=6c6d9a7 docker buildx bake --push
+
+$ VERSION=1.0 GIT_SHA=6c6d9a7 docker buildx bake --allow=fs.read=../../tp01-optimisation-image/starter/shopapi --push
+VERSION=1.0 GIT_SHA=$SHA docker buildx bake --progress=plain  --push  0.14s user 0.12s system 13% cpu 1.905 total
+
+$ docker buildx imagetools inspect localhost:5050/shopapi:1.0 | grep Platform
+  Platform:    linux/amd64
+  Platform:    linux/arm64
+$ docker buildx imagetools inspect localhost:5050/shop-worker:1.0 | grep Platform
+  Platform:    linux/amd64
+  Platform:    linux/arm64
+
+$ curl -s localhost:5050/v2/_catalog
+{"repositories":["cache","shop-worker","shopapi"]}
+
+
+$ docker buildx prune -af && VERSION=1.0 GIT_SHA=6c6d9a7 docker buildx bake worker-test   (builder vidé : cache distant seul)
+étapes servies par le cache distant : 19
+VERSION=1.0 GIT_SHA=$SHA docker buildx bake --progress=plain worker-test  0.10s user 0.08s system 7% cpu 2.232 total

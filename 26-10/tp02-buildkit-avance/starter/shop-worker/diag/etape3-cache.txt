@@ -1,0 +1,13 @@
+variante           | étape                                 |   total |    pip | télé. | cache | cache mount pip
+sans cache mount   | 1. build initial (builder vide)        |    7.8s |   2.1s |    16 |     0 | absent
+                   | 2. docker builder prune -f             |         |        |       |       | absent
+                   | 3. + requests==2.32.3, rebuild         |    7.5s |   3.1s |    26 |     0 | 
+                   | 4. --no-cache                          |    4.5s |   2.5s |    26 |     0 | 
+                   | 5. prune -f --filter type=regular      |         |        |       |       | absent
+                   | 6. rebuild après prune des couches    |    7.1s |   2.4s |    26 |     0 | 
+avec cache mount   | 1. build initial (builder vide)        |    7.8s |   2.2s |    16 |     0 | 15.49MB
+                   | 2. docker builder prune -f             |         |        |       |       | absent
+                   | 3. + requests==2.32.3, rebuild         |    6.7s |   2.4s |    26 |     0 | 
+                   | 4. --no-cache                          |    4.6s |   2.5s |    26 |     0 | 
+                   | 5. prune -f --filter type=regular      |         |        |       |       | 16.9MB
+                   | 6. rebuild après prune des couches    |    6.2s |   1.5s |     0 |    26 | 

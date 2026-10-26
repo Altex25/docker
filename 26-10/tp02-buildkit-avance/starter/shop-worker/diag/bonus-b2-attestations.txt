@@ -1,0 +1,54 @@
+$ docker buildx build --platform linux/amd64,linux/arm64 --provenance=mode=max --sbom=true --secret id=pipconf,src=pip.conf --build-arg APP_VERSION=1.0.0 --build-arg GIT_SHA=6c6d9a7 -t localhost:5050/shop-worker:1.0-attest --push .
+
+$ docker buildx imagetools inspect localhost:5050/shop-worker:1.0-attest | grep -E 'Platform|reference.type'
+  Platform:    linux/amd64
+  Platform:    linux/arm64
+  Platform:    unknown/unknown
+    vnd.docker.reference.type:   attestation-manifest
+  Platform:    unknown/unknown
+    vnd.docker.reference.type:   attestation-manifest
+
+# PROVENANCE (SLSA v1), linux/arm64
+$ docker buildx imagetools inspect localhost:5050/shop-worker:1.0-attest --format '{{json .Provenance}}' | jq '."linux/arm64".SLSA.buildDefinition.externalParameters.request.args'
+{
+  "build-arg:APP_VERSION": "1.0.0",
+  "build-arg:GIT_SHA": "6c6d9a7",
+  "cmdline": "docker/dockerfile:1.7",
+  "source": "docker/dockerfile:1.7"
+}
+--- secrets (identifiants seulement, jamais la valeur)
+[{"id":"pipconf"}]
+--- dépendances résolues (images utilisées, épinglées par digest)
+pkg:docker/docker/buildkit-syft-scanner@stable-1
+pkg:docker/docker/dockerfile@1.7
+pkg:docker/python@3.12.15-slim-trixie?digest=sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704&platform=linux%2Farm64
+--- source VCS (runDetails.metadata.buildkit_metadata.vcs)
+vcs.source = git@github.com:Altex25/docker.git
+vcs.revision = 6c6d9a75bce40acd4258ef5eea245ec4018147c7
+--- mode=max embarque aussi le Dockerfile complet (base64 dans source.infos) et la définition LLB
+fichier Dockerfile (2451 caractères) :
+# syntax=docker/dockerfile:1.7
+ARG PYTHON_IMAGE=python:3.12.15-slim-trixie@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704
+
+FROM ${PYTHON_IMAGE} AS builder
+...
+llbDefinition : 16 opérations
+
+# SBOM (SPDX), linux/arm64
+SPDX-2.3, outils : Organization: Anchore, Inc, Tool: syft-v1.51.0, Tool: buildkit-v0.30.0, 106 paquets
+--- par type (purl)
+  87 deb
+   1 generic
+   5 pypi
+--- paquets Python
+   2 pkg:pypi/pip@25.0.1
+   1 pkg:pypi/prometheus-client@0.20.0
+   1 pkg:pypi/psycopg2-binary@2.9.9
+   1 pkg:pypi/redis@5.0.8
+--- outils de dev (pytest, ruff) dans le SBOM : 0
+
+# Provenance min vs max avec le secret passé en ARG (diag/leak-demo)
+mode=min : 0 occurrence(s) de Tr3sS3cret (2221 octets)
+mode=max : 4 occurrence(s) de Tr3sS3cret (13530 octets)
+$ docker buildx imagetools inspect localhost:5050/leak-demo:prov-max --format '{{json .Provenance}}' | jq .SLSA.buildDefinition.externalParameters.request.args
+{"build-arg:PIP_INDEX_URL":"https://svc-ci:Tr3sS3cret@pypi.internal.example.com/simple"}

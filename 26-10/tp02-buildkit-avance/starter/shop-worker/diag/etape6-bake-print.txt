@@ -1,0 +1,92 @@
+$ docker buildx bake --print
+#1 [internal] load local bake definitions
+#1 reading docker-bake.hcl 1.79kB / 1.79kB done
+#1 DONE 0.0s
+{
+  "group": {
+    "default": {
+      "targets": [
+        "api",
+        "worker"
+      ]
+    }
+  },
+  "target": {
+    "api": {
+      "context": "../../tp01-optimisation-image/starter/shopapi",
+      "dockerfile": "Dockerfile",
+      "args": {
+        "APP_VERSION": "0.0.0-dev",
+        "GIT_SHA": "unknown"
+      },
+      "labels": {
+        "org.opencontainers.image.revision": "unknown",
+        "org.opencontainers.image.source": "https://github.com/Altex25/docker",
+        "org.opencontainers.image.vendor": "Shop SAS",
+        "org.opencontainers.image.version": "0.0.0-dev"
+      },
+      "tags": [
+        "localhost:5050/shopapi:0.0.0-dev"
+      ],
+      "cache-from": [
+        {
+          "ref": "localhost:5050/cache:api",
+          "type": "registry"
+        }
+      ],
+      "cache-to": [
+        {
+          "mode": "max",
+          "ref": "localhost:5050/cache:api",
+          "type": "registry"
+        }
+      ],
+      "target": "runtime",
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64"
+      ]
+    },
+    "worker": {
+      "context": "shop-worker",
+      "dockerfile": "Dockerfile",
+      "args": {
+        "APP_VERSION": "0.0.0-dev",
+        "GIT_SHA": "unknown"
+      },
+      "labels": {
+        "org.opencontainers.image.revision": "unknown",
+        "org.opencontainers.image.source": "https://github.com/Altex25/docker",
+        "org.opencontainers.image.vendor": "Shop SAS",
+        "org.opencontainers.image.version": "0.0.0-dev"
+      },
+      "tags": [
+        "localhost:5050/shop-worker:0.0.0-dev"
+      ],
+      "cache-from": [
+        {
+          "ref": "localhost:5050/cache:worker",
+          "type": "registry"
+        }
+      ],
+      "cache-to": [
+        {
+          "mode": "max",
+          "ref": "localhost:5050/cache:worker",
+          "type": "registry"
+        }
+      ],
+      "target": "runtime",
+      "secret": [
+        {
+          "id": "pipconf",
+          "src": "shop-worker/pip.conf"
+        }
+      ],
+      "platforms": [
+        "linux/amd64",
+        "linux/arm64"
+      ]
+    }
+  }
+}

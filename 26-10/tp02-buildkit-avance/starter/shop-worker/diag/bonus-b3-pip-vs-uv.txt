@@ -1,0 +1,16 @@
+outil | scénario                      |   total | installation
+pip   | froid (cache mount vide)       |   12.0s |        3.50s
+      | deps invalidées, cache chaud  |    3.4s |        1.40s
+uv    | froid (cache mount vide)       |    9.5s |        2.10s
+      | deps invalidées, cache chaud  |    1.2s |        0.30s
+# uv : cache mount seul, sans wheelhouse ni --no-index (builder shop, linux/arm64)
+en ligne (remplit /root/.cache/uv)                 : exit=0 | Installed 3 packages in 8ms 
+--network=none, deps invalidées (ARG BUST)         : exit=0 | Installed 3 packages in 5ms 
+--network=none + UV_OFFLINE=1, deps invalidées     : exit=0 | Installed 3 packages in 7ms 
+
+# Taille des images (linux/arm64)
+worker:uv                                                                          219MB
+worker:1.0                                                                         237MB
+venv pip : 25M ; venv uv : 12M (uv venv n'installe pas pip dans le venv)
+worker:1.0 : 51365812 octets compressés
+worker:uv : 47438651 octets compressés

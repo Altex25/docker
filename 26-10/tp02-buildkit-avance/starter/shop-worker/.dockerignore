@@ -1,0 +1,6 @@
+# Liste blanche : pip.conf (identifiants) et tout nouveau fichier restent hors du contexte.
+*
+!requirements.txt
+!requirements-dev.txt
+!worker/
+!tests/

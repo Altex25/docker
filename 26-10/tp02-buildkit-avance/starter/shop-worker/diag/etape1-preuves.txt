@@ -1,0 +1,36 @@
+# Image de démonstration : diag/leak-demo/Dockerfile (ARG lu par pip, puis pip.conf écrit et "supprimé")
+$ docker build --build-arg PIP_INDEX_URL=https://svc-ci:Tr3sS3cret@pypi.internal.example.com/simple -t worker:leak-demo diag/leak-demo
+
+# Piège : grep -i secret ne trouve rien, le mot de passe est "Tr3sS3cret" (avec un 3)
+$ docker history --no-trunc worker:leak-demo | grep -ci secret
+0
+
+# 1. docker history : chaque RUN qui suit l ARG enregistre sa valeur
+$ docker history --no-trunc --format "{{.CreatedBy}}" worker:leak-demo | grep -i S3cret
+RUN |1 PIP_INDEX_URL=https://svc-ci:Tr3sS3cret@pypi.internal.example.com/simple /bin/sh -c rm /etc/pip.conf # buildkit
+RUN |1 PIP_INDEX_URL=https://svc-ci:Tr3sS3cret@pypi.internal.example.com/simple /bin/sh -c pip config --global set global.index-url "$PIP_INDEX_URL" # buildkit
+ARG PIP_INDEX_URL=https://svc-ci:Tr3sS3cret@pypi.internal.example.com/simple
+
+# 2. docker inspect / config OCI : l historique fait partie de la config de l image, poussée au registre avec elle
+$ docker save worker:leak-demo | (config) | jq -r ".history[].created_by" | grep S3cret
+ARG PIP_INDEX_URL=https://svc-ci:Tr3sS3cret@pypi.internal.example.com/simple
+RUN |1 PIP_INDEX_URL=https://svc-ci:Tr3sS3cret@pypi.internal.example.com/simple /bin/sh -c pip config --global set global.index-url "$PIP_INDEX_URL" # buildkit
+RUN |1 PIP_INDEX_URL=https://svc-ci:Tr3sS3cret@pypi.internal.example.com/simple /bin/sh -c rm /etc/pip.conf # buildkit
+
+# 3. couche intermédiaire : /etc/pip.conf supprimé par le RUN suivant, mais toujours présent dans la couche précédente
+$ docker run --rm worker:leak-demo cat /etc/pip.conf
+cat: /etc/pip.conf: No such file or directory
+(exit=1)
+$ docker save worker:leak-demo -> recherche de etc/pip.conf dans chaque couche
+couche bb10e55708a2 :
+[global]
+index-url = https://svc-ci:Tr3sS3cret@pypi.internal.example.com/simple
+
+
+# 4. historique BuildKit : conservé même pour le build EN ÉCHEC de worker:leak (aucune image produite)
+$ docker buildx history inspect lt17xosz0fltes0qsunnzbpbq
+Name:		26-10/tp02-buildkit-avance/starter/shop-worker
+BUILD ARG	VALUE
+PIP_INDEX_URL	https://svc-ci:Tr3sS3cret@pypi.internal.example.com/simple
+
+# 5. ligne de commande / logs CI : la valeur est en clair dans la commande docker build (ps, historique du shell, logs du job)

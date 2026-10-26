@@ -1,0 +1,29 @@
+$ docker build --build-arg PIP_INDEX_URL=https://svc-ci:Tr3sS3cret@pypi.internal.example.com/simple -t worker:leak . || true
+#9 8.435 ERROR: Could not find a version that satisfies the requirement redis==5.0.8 (from versions: none)
+#9 8.454 ERROR: No matching distribution found for redis==5.0.8
+#9 ERROR: process "/bin/sh -c pip install -r requirements-dev.txt" did not complete successfully: exit code: 1
+------
+ > [4/4] RUN pip install -r requirements-dev.txt:
+0.870 Looking in indexes: https://svc-ci:****@pypi.internal.example.com/simple
+0.905 WARNING: Retrying (Retry(total=4, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<pip._vendor.urllib3.connection.HTTPSConnection object at 0xf6bf195e3ef0>: Failed to establish a new connection: [Errno -2] Name or service not known')': /simple/redis/
+1.409 WARNING: Retrying (Retry(total=3, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<pip._vendor.urllib3.connection.HTTPSConnection object at 0xf6bf179cfb90>: Failed to establish a new connection: [Errno -2] Name or service not known')': /simple/redis/
+2.414 WARNING: Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<pip._vendor.urllib3.connection.HTTPSConnection object at 0xf6bf179cfda0>: Failed to establish a new connection: [Errno -2] Name or service not known')': /simple/redis/
+4.417 WARNING: Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<pip._vendor.urllib3.connection.HTTPSConnection object at 0xf6bf179cffe0>: Failed to establish a new connection: [Errno -2] Name or service not known')': /simple/redis/
+8.423 WARNING: Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<pip._vendor.urllib3.connection.HTTPSConnection object at 0xf6bf177d0230>: Failed to establish a new connection: [Errno -2] Name or service not known')': /simple/redis/
+8.435 ERROR: Could not find a version that satisfies the requirement redis==5.0.8 (from versions: none)
+8.454 ERROR: No matching distribution found for redis==5.0.8
+------
+Dockerfile.leak:6
+--------------------
+   4 |     # Le registre PyPI interne de l'entreprise demande une authentification
+   5 |     ARG PIP_INDEX_URL=https://user:password@pypi.internal.example.com/simple
+   6 | >>> RUN pip install -r requirements-dev.txt
+   7 |     CMD ["python", "-m", "worker.main"]
+   8 |     
+--------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c pip install -r requirements-dev.txt" did not complete successfully: exit code: 1
+
+View build details: docker-desktop://dashboard/build/colima/colima/lt17xosz0fltes0qsunnzbpbq
+
+$ docker history --no-trunc worker:leak | grep -i secret
+(exit=1)

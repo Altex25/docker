@@ -1,0 +1,35 @@
+$ docker buildx build --builder shop --platform linux/amd64,linux/arm64 --secret id=pipconf,src=pip.conf --build-arg APP_VERSION=1.0.0 --build-arg GIT_SHA=6c6d9a7 -t localhost:5050/shop-worker:1.0 --push .
+#22 0.238 2 passed in 0.03s
+#34 1.325 2 passed in 0.18s
+#36 exporting manifest list sha256:6d4582ab96556e8e725c5502e43a108077aa2ca5f65fdf468eb2957a3987f4b6 done
+#36 pushing manifest for localhost:5050/shop-worker:1.0@sha256:6d4582ab96556e8e725c5502e43a108077aa2ca5f65fdf468eb2957a3987f4b6
+#36 pushing manifest for localhost:5050/shop-worker:1.0@sha256:6d4582ab96556e8e725c5502e43a108077aa2ca5f65fdf468eb2957a3987f4b6 0.0s done
+docker buildx build --builder shop --progress=plain --platform  --secret       0.12s user 0.13s system 0% cpu 26.956 total
+
+$ docker buildx imagetools inspect localhost:5050/shop-worker:1.0
+Name:      localhost:5050/shop-worker:1.0
+MediaType: application/vnd.oci.image.index.v1+json
+Digest:    sha256:6d4582ab96556e8e725c5502e43a108077aa2ca5f65fdf468eb2957a3987f4b6
+           
+Manifests: 
+  Name:        localhost:5050/shop-worker:1.0@sha256:b8df05e4edc9a99c34eefc18777aad4f0179ac30e49a3902a4201e8b46cd3e0f
+  MediaType:   application/vnd.oci.image.manifest.v1+json
+  Platform:    linux/amd64
+               
+  Name:        localhost:5050/shop-worker:1.0@sha256:9a12ece58cdae89fe77ce1265f8d2c7d8b7f11ab7fd425049d66a169e2e43d20
+  MediaType:   application/vnd.oci.image.manifest.v1+json
+  Platform:    linux/arm64
+               
+  Name:        localhost:5050/shop-worker:1.0@sha256:160a057383dfeacf2d4d4e8d44ef35b211042a7fcacd12a488ae256b8fefa215
+  MediaType:   application/vnd.oci.image.manifest.v1+json
+  Platform:    unknown/unknown
+  Annotations: 
+    vnd.docker.reference.digest: sha256:b8df05e4edc9a99c34eefc18777aad4f0179ac30e49a3902a4201e8b46cd3e0f
+    vnd.docker.reference.type:   attestation-manifest
+               
+  Name:        localhost:5050/shop-worker:1.0@sha256:295ddb7a511cd6f789dfeb4b34a6be4e3e70d38f8a1cf0511e82917c75ce5253
+  MediaType:   application/vnd.oci.image.manifest.v1+json
+  Platform:    unknown/unknown
+  Annotations: 
+    vnd.docker.reference.digest: sha256:9a12ece58cdae89fe77ce1265f8d2c7d8b7f11ab7fd425049d66a169e2e43d20
+    vnd.docker.reference.type:   attestation-manifest

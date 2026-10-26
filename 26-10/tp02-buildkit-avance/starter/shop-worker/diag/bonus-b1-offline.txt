@@ -1,0 +1,21 @@
+# Builder shop vidé (buildx prune -af), plateforme linux/arm64
+
+# 0. Dockerfile principal (cache pip pré-rempli) : pip ne peut pas résoudre les versions sans index
+  en ligne (remplit /root/.cache/pip)        : exit=0
+  hors ligne, couche deps invalidée par ARG   : exit=1 | ERROR: Could not find a version that satisfies the requirement redis==5.0.8 
+
+# 1. Variante bonus/Dockerfile.offline : le cache mount sert de wheelhouse
+$ docker buildx build -f bonus/Dockerfile.offline --network=none --output type=cacheonly .     (wheelhouse vide)
+  exit=1 en 6.0 s | ERROR: Could not find a version that satisfies the requirement redis==5.0.8 
+$ docker buildx build -f bonus/Dockerfile.offline --target prefetch --secret id=pipconf,src=pip.conf --output type=cacheonly .   (en ligne)
+  exit=0 en 3.3 s | 
+  wheelhouse : 8 wheels enregistrées
+$ docker buildx prune -f --filter type=regular   (couches vidées, wheelhouse conservée)
+$ docker buildx build -f bonus/Dockerfile.offline --network=none -t worker:offline --load .   (sans --secret)
+  exit=0 en 6.4 s | 2 passed in 0.02s
+  pip install exécutés hors ligne : 2
+$ echo '# x' >> worker/main.py && build hors ligne
+  exit=0 en .6 s | 2 passed in 0.02s
+$ echo requests==2.32.3 >> requirements.txt && build hors ligne   (dépendance absente de la wheelhouse)
+  exit=1 en .7 s | ERROR: Could not find a version that satisfies the requirement requests==2.32.3 
+$ docker run -d --network none worker:offline -> healthy, uid=10001(worker) gid=10001(worker) groups=10001(worker)
