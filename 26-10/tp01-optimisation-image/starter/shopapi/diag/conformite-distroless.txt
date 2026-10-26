@@ -1,0 +1,93 @@
+$ docker image ls shopapi
+IMAGE                      ID             DISK USAGE   CONTENT SIZE   EXTRA
+shopapi:1.4.2              4318dac8f3e6        212MB         51.7MB        
+shopapi:1.4.2-distroless   33bd65eec50d        199MB         46.8MB        
+shopapi:legacy             cd87e0777ee1       1.06GB          279MB        
+shopapi:test               4eaf2239d32c        232MB         54.4MB        
+
+# Taille réelle du système de fichiers (docker export, aucun shell nécessaire)
+shopapi:legacy : 730.0 Mo
+shopapi:1.4.2 : 148.2 Mo
+shopapi:1.4.2-distroless : 143.3 Mo
+
+$ docker inspect shopapi:1.4.2-distroless (Config)
+Entrypoint=["/nodejs/bin/node"] Cmd=["src/server.js"] User="65532:65532" Layers=23
+
+$ docker inspect shopapi:1.4.2-distroless --format '{{json .Config.Labels}}' | jq
+{
+  "org.opencontainers.image.base.name": "gcr.io/distroless/nodejs20-debian12:nonroot",
+  "org.opencontainers.image.description": "API catalogue produits Shop SAS (distroless)",
+  "org.opencontainers.image.revision": "31ffc07",
+  "org.opencontainers.image.source": "https://github.com/Altex25/docker",
+  "org.opencontainers.image.title": "shopapi",
+  "org.opencontainers.image.vendor": "Shop SAS",
+  "org.opencontainers.image.version": "1.4.2"
+}
+
+$ docker run --rm shopapi:1.4.2-distroless id
+node:internal/modules/cjs/loader:1210
+  throw err;
+  ^
+
+Error: Cannot find module '/app/id'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Module._load (node:internal/modules/cjs/loader:1038:27)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+    at node:internal/main/run_main_module:28:49 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v20.20.0
+(exit=1)
+
+$ docker run -d --name apid -p 3001:3000 shopapi:1.4.2-distroless
+e5c3730308fa5a4f31db7348e536b2937d4a1b1f5411b67dcf75bf803c259c8d
+$ sleep 6 && docker inspect apid --format '{{.State.Health.Status}}'
+healthy
+$ docker inspect apid --format '{{json (index .State.Health.Log 0)}}'
+{"Start":"2026-10-26T09:44:16.598581503+01:00","End":"2026-10-26T09:44:16.73736016+01:00","ExitCode":0,"Output":""}
+
+$ curl -s localhost:3001/products | jq -c
+[{"id":1,"name":"Clavier mécanique","price":89.9,"stock":12},{"id":2,"name":"Écran 27\"","price":249,"stock":4},{"id":3,"name":"Souris sans fil","price":29.5,"stock":40}]
+$ curl -s localhost:3001/
+{"service":"shopapi","version":"1.4.2"}
+
+$ docker top apid -o pid,user,args
+PID                 USER                COMMAND
+11183               65532               /nodejs/bin/node src/server.js
+
+$ docker exec apid sh
+OCI runtime exec failed: exec failed: unable to start container process: exec: "sh": executable file not found in $PATH
+(exit=127)
+$ docker exec apid ls /app
+OCI runtime exec failed: exec failed: unable to start container process: exec: "ls": executable file not found in $PATH
+(exit=127)
+
+# Débogage : conteneur busybox qui partage les namespaces PID et réseau de apid
+$ docker run --rm --pid=container:apid --network=container:apid busybox:1.37 sh -c "ps; wget -qO- http://127.0.0.1:3000/health; ls /proc/1/root/app"
+Unable to find image 'busybox:1.37' locally
+1.37: Pulling from library/busybox
+af820adcc158: Pulling fs layer
+af820adcc158: Download complete
+af820adcc158: Pull complete
+9eac587a9921: Download complete
+Digest: sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e
+Status: Downloaded newer image for busybox:1.37
+PID   USER     TIME  COMMAND
+    1 65532     0:00 /nodejs/bin/node src/server.js
+   41 root      0:00 sh -c ps; wget -qO- http://127.0.0.1:3000/health; echo; ls /proc/1/root/app
+   47 root      0:00 ps
+{"status":"ok"}
+ls: /proc/1/root/app: Permission denied
+
+$ time docker stop apid
+apid
+docker stop apid  0.01s user 0.01s system 24% cpu 0.091 total
+ExitCode=0
+{"level":30,"time":1793004264998,"pid":1,"hostname":"e5c3730308fa","signal":"SIGTERM","msg":"arrêt demandé"}
+
+# Variante :debug-nonroot (busybox dans /busybox) pour un shell en dépannage
+$ docker run --rm --entrypoint /busybox/sh gcr.io/distroless/nodejs20-debian12:debug-nonroot -c "id; which sh"
+uid=65532(nonroot) gid=65532(nonroot) groups=65532(nonroot)
+/busybox/sh

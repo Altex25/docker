@@ -1,0 +1,72 @@
+$ docker image ls shopapi
+IMAGE            ID             DISK USAGE   CONTENT SIZE   EXTRA
+shopapi:1.4.2    ef66f7bd7f8f        212MB         51.7MB        
+shopapi:legacy   cd87e0777ee1       1.06GB          279MB        
+shopapi:test     4eaf2239d32c        232MB         54.4MB        
+
+$ docker run --rm shopapi:1.4.2 id
+uid=1000(node) gid=1000(node) groups=1000(node)
+
+$ docker run --rm shopapi:1.4.2 ls -la /app
+total 20
+drwxr-xr-x    1 root     root          4096 Oct 26 08:35 .
+drwxr-xr-x    1 root     root          4096 Oct 26 08:36 ..
+drwxr-xr-x  114 root     root          4096 Oct 26 08:35 node_modules
+-rw-r--r--    1 root     root           545 Oct 26 08:12 package.json
+drwxr-xr-x    2 root     root          4096 Oct 26 08:34 src
+
+$ docker run --rm shopapi:1.4.2 env | grep -i -E 'secret|database'  (aucune sortie attendue)
+(grep exit=1)
+
+$ docker run --rm shopapi:1.4.2 ls /app/node_modules | grep -E "^(eslint|nodemon)$"  (aucune sortie attendue)
+(grep exit=1)
+
+$ docker inspect shopapi:1.4.2 --format '{{json .Config.Labels}}' | jq
+{
+  "org.opencontainers.image.base.name": "docker.io/library/node:20.20.2-alpine3.23",
+  "org.opencontainers.image.description": "API catalogue produits Shop SAS",
+  "org.opencontainers.image.revision": "31ffc07",
+  "org.opencontainers.image.source": "https://github.com/Altex25/docker",
+  "org.opencontainers.image.title": "shopapi",
+  "org.opencontainers.image.vendor": "Shop SAS",
+  "org.opencontainers.image.version": "1.4.2"
+}
+
+$ docker inspect shopapi:1.4.2 (Config)
+Cmd=["node","src/server.js"] User="1000:1000" Healthcheck={"Test":["CMD","wget","-q","-O","/dev/null","http://127.0.0.1:3000/health"],"Interval":30000000000,"Timeout":3000000000,"StartPeriod":10000000000,"StartInterval":1000000000,"Retries":3} Layers=8
+
+$ docker run -d --name api -p 3000:3000 shopapi:1.4.2
+0482fb16bf35d108b6661715f4fef836573c95e5c0bc61097d9cc68b10fb331e
+$ sleep 6 && docker inspect api --format '{{.State.Health.Status}}'
+healthy
+
+$ curl -s localhost:3000/products | jq
+[
+  {
+    "id": 1,
+    "name": "Clavier mécanique",
+    "price": 89.9,
+    "stock": 12
+  },
+  {
+    "id": 2,
+    "name": "Écran 27\"",
+    "price": 249,
+    "stock": 4
+  },
+  {
+    "id": 3,
+    "name": "Souris sans fil",
+    "price": 29.5,
+    "stock": 40
+  }
+]
+$ curl -s localhost:3000/
+{"service":"shopapi","version":"1.4.2"}
+
+$ time docker stop api
+api
+docker stop api  0.01s user 0.00s system 8% cpu 0.117 total
+$ docker logs api | tail -2
+{"level":30,"time":1793003806023,"pid":1,"hostname":"0482fb16bf35","req":{"id":3,"method":"GET","url":"/","query":{},"params":{},"headers":{"host":"localhost:3000","user-agent":"curl/8.7.1","accept":"*/*"},"remoteAddress":"::ffff:172.17.0.1","remotePort":59418},"res":{"statusCode":200,"headers":{"x-powered-by":"Express","content-type":"application/json; charset=utf-8","content-length":"39","etag":"W/\"27-qUa+Zmy5N8oJwNEll5EY5rWX4Zs\""}},"responseTime":0,"msg":"request completed"}
+{"level":30,"time":1793003806048,"pid":1,"hostname":"0482fb16bf35","signal":"SIGTERM","msg":"arrêt demandé"}

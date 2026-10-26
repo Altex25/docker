@@ -1,0 +1,49 @@
+$ time docker build -t shopapi:legacy .   (cache chaud, aucun changement)
+#4 DONE 0.0s
+#5 [internal] load build context
+#5 DONE 0.0s
+#6 [6/9] RUN npm install -g nodemon
+#6 CACHED
+#7 [3/9] RUN apt-get install -y curl wget vim git build-essential python3
+#7 CACHED
+#8 [2/9] RUN apt-get update
+#8 CACHED
+#9 [4/9] RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+#9 CACHED
+#10 [5/9] RUN apt-get install -y nodejs
+#10 CACHED
+#11 [7/9] WORKDIR /app
+#11 CACHED
+#12 [8/9] COPY . /app
+#12 DONE 0.0s
+#13 [9/9] RUN npm install
+#13 DONE 10.4s
+#14 DONE 0.9s
+
+$ echo "// commentaire" >> src/server.js
+$ time docker build -t shopapi:legacy .
+#2 DONE 0.3s
+#3 [internal] load .dockerignore
+#3 DONE 0.0s
+#4 [1/9] FROM docker.io/library/ubuntu:22.04@sha256:0a9887931b0e38af2e3487ed39e29436b0535c4f3f52e57745baaf79d1898956
+#4 DONE 0.0s
+#5 [internal] load build context
+#5 DONE 0.0s
+#6 [3/9] RUN apt-get install -y curl wget vim git build-essential python3
+#6 CACHED
+#7 [2/9] RUN apt-get update
+#7 CACHED
+#8 [4/9] RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+#8 CACHED
+#9 [5/9] RUN apt-get install -y nodejs
+#9 CACHED
+#10 [6/9] RUN npm install -g nodemon
+#10 CACHED
+#11 [7/9] WORKDIR /app
+#11 CACHED
+#12 [8/9] COPY . /app
+#12 DONE 0.0s
+#13 [9/9] RUN npm install
+#13 9.912 added 222 packages, and audited 223 packages in 10s
+#13 DONE 10.0s
+#14 DONE 0.9s

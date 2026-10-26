@@ -1,0 +1,6 @@
+# Liste blanche : un nouveau fichier (.env, dump, clé…) n'entre dans le contexte que s'il est listé ici.
+*
+!package.json
+!package-lock.json
+!src/
+!test/

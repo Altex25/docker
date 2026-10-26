@@ -1,0 +1,23 @@
+$ docker run -d --name legacy shopapi:legacy
+fb70ab57acec9f102c3e00e0a18637af6f256f48714257ed4152953abfa89b18
+$ docker exec legacy ps -o pid,ppid,user,args (arbre des processus)
+    PID    PPID USER     COMMAND
+      1       0 root     /bin/sh -c npm start
+      7       1 root     npm start
+     18       7 root     sh -c node src/server.js
+     19      18 root     node src/server.js
+     30       0 root     ps -eo pid,ppid,user,args
+
+$ time docker stop legacy
+legacy
+docker stop legacy  0.01s user 0.01s system 0% cpu 10.134 total
+$ docker inspect legacy --format '{{.State.ExitCode}}'
+137
+
+$ docker exec api ps -o pid,ppid,user,args (nouvelle image)
+PID   PPID  USER     COMMAND
+    1     0 node     node src/server.js
+   24     0 node     ps -o pid,ppid,user,args
+api
+docker stop api  0.01s user 0.01s system 18% cpu 0.105 total
+ExitCode=0

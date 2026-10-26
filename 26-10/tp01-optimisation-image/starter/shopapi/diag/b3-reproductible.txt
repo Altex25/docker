@@ -1,0 +1,22 @@
+BuildKit v0.30.0, SOURCE_DATE_EPOCH=1793004994 (2026-10-26 08:56:34 UTC)
+
+== 1 aucun réglage : DIFFÉRENTS
+   build 1 : sha256:7fb775f7959f53e886c1216d05da977bb7004e3800abca6283b322676d1a09d6
+      created=2026-10-26T09:27:36.53624364Z | mtime src/server.js=Oct 26 09:37 | mtime node_modules/express/package.json=Oct 26 10:27
+   build 2 : sha256:4ea3ec81f84b9316a39eaa255f788acbb6f09bd04a9184b4e981b420cb8ead2b
+      created=2026-10-26T09:27:39.977392569Z | mtime src/server.js=Oct 26 09:37 | mtime node_modules/express/package.json=Oct 26 10:27
+== 2 SOURCE_DATE_EPOCH seul : DIFFÉRENTS
+   build 1 : sha256:d317b5af79a99240f886bc99222075213798acc1516bf54bc28821e1fa85d15b
+      created=2026-10-26T08:56:34Z | mtime src/server.js=Oct 26 09:37 | mtime node_modules/express/package.json=Oct 26 10:27
+   build 2 : sha256:eef8f60d1f41a05c67b158c98e6268942b8f2045f93ce07480f31ff3c2facdb1
+      created=2026-10-26T08:56:34Z | mtime src/server.js=Oct 26 09:37 | mtime node_modules/express/package.json=Oct 26 10:27
+== 3 SOURCE_DATE_EPOCH + rewrite-timestamp : IDENTIQUES
+   build 1 : sha256:ff13e787cb188e7b009b8073ad96f9ef13fcec325b6e707216d259be0ba24c9f
+      created=2026-10-26T08:56:34Z | mtime src/server.js=Oct 26 09:37 | mtime node_modules/express/package.json=Oct 26 09:56
+   build 2 : sha256:ff13e787cb188e7b009b8073ad96f9ef13fcec325b6e707216d259be0ba24c9f
+      created=2026-10-26T08:56:34Z | mtime src/server.js=Oct 26 09:37 | mtime node_modules/express/package.json=Oct 26 09:56
+== 4 idem sur la cible distroless : IDENTIQUES
+   build 1 : sha256:cb296cb8dd7ab81fa38a624d449a3878280cfbfc842f7f31a03f3a276b3bfdab
+      created=2026-10-26T08:56:34Z | mtime src/server.js=Oct 26 09:37 | mtime node_modules/express/package.json=Oct 26 09:56
+   build 2 : sha256:cb296cb8dd7ab81fa38a624d449a3878280cfbfc842f7f31a03f3a276b3bfdab
+      created=2026-10-26T08:56:34Z | mtime src/server.js=Oct 26 09:37 | mtime node_modules/express/package.json=Oct 26 09:56

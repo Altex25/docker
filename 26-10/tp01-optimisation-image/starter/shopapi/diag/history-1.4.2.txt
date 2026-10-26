@@ -1,0 +1,23 @@
+IMAGE          CREATED              CREATED BY                                      SIZE      COMMENT
+de2db093c2cc   1 second ago         CMD ["node" "src/server.js"]                    0B        buildkit.dockerfile.v0
+<missing>      1 second ago         HEALTHCHECK &{["CMD" "wget" "-q" "-O" "/dev/…   0B        buildkit.dockerfile.v0
+<missing>      1 second ago         EXPOSE map[3000/tcp:{}]                         0B        buildkit.dockerfile.v0
+<missing>      1 second ago         USER 1000:1000                                  0B        buildkit.dockerfile.v0
+<missing>      1 second ago         COPY /app/src ./src # buildkit                  20.5kB    buildkit.dockerfile.v0
+<missing>      1 second ago         COPY package.json ./ # buildkit                 12.3kB    buildkit.dockerfile.v0
+<missing>      1 second ago         COPY /app/node_modules ./node_modules # buil…   15.4MB    buildkit.dockerfile.v0
+<missing>      About a minute ago   WORKDIR /app                                    8.19kB    buildkit.dockerfile.v0
+<missing>      About a minute ago   ENV NODE_ENV=production APP_VERSION=1.4.2 PO…   0B        buildkit.dockerfile.v0
+<missing>      About a minute ago   LABEL org.opencontainers.image.title=shopapi…   0B        buildkit.dockerfile.v0
+<missing>      About a minute ago   ARG SOURCE_URL=https://github.com/Altex25/do…   0B        buildkit.dockerfile.v0
+<missing>      About a minute ago   ARG GIT_SHA=unknown                             0B        buildkit.dockerfile.v0
+<missing>      About a minute ago   ARG APP_VERSION=0.0.0-dev                       0B        buildkit.dockerfile.v0
+<missing>      6 months ago         CMD ["node"]                                    0B        buildkit.dockerfile.v0
+<missing>      6 months ago         ENTRYPOINT ["docker-entrypoint.sh"]             0B        buildkit.dockerfile.v0
+<missing>      6 months ago         COPY docker-entrypoint.sh /usr/local/bin/ # …   20.5kB    buildkit.dockerfile.v0
+<missing>      6 months ago         RUN /bin/sh -c apk add --no-cache --virtual …   5.48MB    buildkit.dockerfile.v0
+<missing>      6 months ago         ENV YARN_VERSION=1.22.22                        0B        buildkit.dockerfile.v0
+<missing>      6 months ago         RUN /bin/sh -c addgroup -g 1000 node     && …   130MB     buildkit.dockerfile.v0
+<missing>      6 months ago         ENV NODE_VERSION=20.20.2                        0B        buildkit.dockerfile.v0
+<missing>      6 months ago         CMD ["/bin/sh"]                                 0B        buildkit.dockerfile.v0
+<missing>      6 months ago         ADD alpine-minirootfs-3.23.4-aarch64.tar.gz …   9.35MB    buildkit.dockerfile.v0

@@ -1,0 +1,17 @@
+$ docker run --rm --pid=container:apid --cap-add SYS_PTRACE busybox:1.37 ls -la /proc/1/root/app
+total 20
+drwxr-xr-x    1 root     root          4096 Oct 26 08:45 .
+drwxr-xr-x    1 root     root          4096 Oct 26 08:45 ..
+drwxr-xr-x  114 root     root          4096 Oct 26 08:37 node_modules
+-rw-r--r--    1 root     root           545 Oct 26 08:12 package.json
+drwxr-xr-x    2 root     root          4096 Oct 26 08:37 src
+
+$ docker cp apid:/app/package.json - | tar -xO | jq -r .version   (docker cp ne nécessite pas de shell)
+1.4.2
+
+# Durée moyenne d une sonde (.State.Health.Log, 10 s après démarrage, start-interval=1s)
+api: 1 sondes, moyenne 22 ms, max 22 ms
+apid: 1 sondes, moyenne 146 ms, max 146 ms
+# 10 exécutions de la commande de healthcheck via docker exec (inclut ~coût fixe de docker exec)
+api  (wget busybox)   : 39 ms / sonde
+apid (node -e fetch)  : 103 ms / sonde

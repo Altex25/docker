@@ -1,0 +1,44 @@
+$ docker run --rm -i hadolint/hadolint < Dockerfile.legacy
+Unable to find image 'hadolint/hadolint:v2.12.0' locally
+v2.12.0: Pulling from hadolint/hadolint
+1c5dbb1c62fe: Pulling fs layer
+1c5dbb1c62fe: Download complete
+1c5dbb1c62fe: Pull complete
+Digest: sha256:30a8fd2e785ab6176eed53f74769e04f125afb2f74a6c52aef7d463583b6d45e
+Status: Downloaded newer image for hadolint/hadolint:v2.12.0
+-:4 DL3009 info: Delete the apt-get lists after installing something
+-:5 DL3008 warning: Pin versions in apt get install. Instead of `apt-get install <package>` use `apt-get install <package>=<version>`
+-:5 DL3015 info: Avoid additional packages by specifying `--no-install-recommends`
+-:5 DL3059 info: Multiple consecutive `RUN` instructions. Consider consolidation.
+-:6 DL4006 warning: Set the SHELL option -o pipefail before RUN with a pipe in it. If you are using /bin/sh in an alpine image or if your shell is symlinked to busybox then consider explicitly setting your SHELL to /bin/ash, or disable this check
+-:7 DL3008 warning: Pin versions in apt get install. Instead of `apt-get install <package>` use `apt-get install <package>=<version>`
+-:7 DL3015 info: Avoid additional packages by specifying `--no-install-recommends`
+-:8 DL3059 info: Multiple consecutive `RUN` instructions. Consider consolidation.
+-:8 DL3016 warning: Pin versions in npm. Instead of `npm install <package>` use `npm install <package>@<version>`
+-:15 DL3025 warning: Use arguments JSON notation for CMD and ENTRYPOINT arguments
+exit=1
+
+$ docker run --rm shopapi:legacy du -sh /var/lib/apt/lists /root/.npm
+77M	/var/lib/apt/lists
+34M	/root/.npm
+
+$ dive shopapi:legacy --ci (via conteneur)
+Unable to find image 'wagoodman/dive:v0.12.0' locally
+v0.12.0: Pulling from wagoodman/dive
+a7dfad62b2da: Pulling fs layer
+619be1103602: Pulling fs layer
+cf6c0733f07b: Pulling fs layer
+cf6c0733f07b: Download complete
+619be1103602: Download complete
+cf6c0733f07b: Pull complete
+619be1103602: Pull complete
+a7dfad62b2da: Download complete
+a7dfad62b2da: Pull complete
+Digest: sha256:b4bbb985609f32ddfeb8a31f2cb254998fce2b95c358ad588a91a1ed138d6033
+Status: Downloaded newer image for wagoodman/dive:v0.12.0
+WARNING: The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested
+  Using default CI config
+Image Source: docker://shopapi:legacy
+Fetching image... (this can take a while for large images)
+cannot fetch image
+could not find 'blobs/sha256/e5ce8a1ba6da680302e3416fb9072b133e68b1165acfca7a6f7736ef1986f197' in parsed layers
