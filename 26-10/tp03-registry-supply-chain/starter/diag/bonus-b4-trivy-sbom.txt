@@ -1,0 +1,16 @@
+# Référence : scan de l'image
+$ trivy image registry.local:5000/shopapi:1.4.3  -> LOW=8 MEDIUM=23
+
+# SBOM récupérés depuis les attestations signées (aucun accès aux couches de l image)
+$ cosign verify-attestation --type spdxjson registry.local:5000/shopapi:1.4.3 | jq -r .payload | base64 -d | jq .predicate > sbom.json && trivy sbom sbom.json
+  -> aucune ; OS détecté : {"Family":"none","Name":""}
+$ cosign verify-attestation --type cyclonedx registry.local:5000/shopapi:1.4.3 | jq -r .payload | base64 -d | jq .predicate > sbom.json && trivy sbom sbom.json
+  -> LOW=8 MEDIUM=23 ; OS détecté : {"Family":"debian","Name":"13.7"}
+
+# Même chose sur 1.4.2 (SBOM syft de l étape 4)
+$ trivy image shopapi:1.4.2  -> CRITICAL=1 HIGH=26 LOW=35 MEDIUM=27 UNKNOWN=2
+$ trivy sbom supply/sbom.json (syft SPDX) -> CRITICAL=1 HIGH=22 LOW=3 MEDIUM=12
+$ trivy sbom (CycloneDX produit par trivy) -> CRITICAL=1 HIGH=26 LOW=35 MEDIUM=27 UNKNOWN=2
+
+# Runner sans base locale : SBOM + serveur partagé (B1)
+$ trivy sbom --server http://localhost:4954 --token *** supply/from-attestation-1.4.3.cyclonedx.json -> LOW=8 MEDIUM=23

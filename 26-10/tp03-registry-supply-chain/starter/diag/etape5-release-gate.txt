@@ -1,0 +1,83 @@
+$ ./release-gate.sh shopapi:legacy
+== Porte de release : shopapi:legacy
+  ÉCHEC  label org.opencontainers.image.version=22.04 : pas une version semver (label hérité de l'image de base ?)
+  ÉCHEC  label org.opencontainers.image.revision absent
+  ÉCHEC  label org.opencontainers.image.source absent
+  ÉCHEC  utilisateur root (User="")
+  ÉCHEC  pas de HEALTHCHECK
+  ÉCHEC  22 CVE HIGH/CRITICAL corrigeables :
+           brace-expansion 2.0.1 : 5 CVE (HIGH), corrigé en 5.0.10, 3.0.7, 2.1.5, 1.1.19
+           cross-spawn 7.0.3 : 1 CVE (HIGH), corrigé en 7.0.5, 6.0.6
+           glob 10.4.2 : 1 CVE (HIGH), corrigé en 11.1.0, 10.5.0
+           ip-address 9.0.5 : 1 CVE (HIGH), corrigé en 10.3.1
+           minimatch 9.0.5 : 3 CVE (HIGH), corrigé en 10.2.1, 9.0.6, 8.0.5, 7.4.7, 6.2.1, 5.1.7, 4.2.4, 3.1.3
+           pacote 18.0.6 : 1 CVE (HIGH), corrigé en 21.5.1
+           sigstore 2.3.1 : 1 CVE (HIGH), corrigé en 4.1.1
+           tar 6.2.1 : 9 CVE (CRITICAL/HIGH), corrigé en 7.5.19
+  ÉCHEC  identifiants dans ENV : DATABASE_URL=***
+  ÉCHEC  2 secret(s) détecté(s) :
+           /app/.env : aws-access-key-id (CRITICAL)
+           /app/diag/legacy.txt : aws-access-key-id (CRITICAL)
+== REFUSÉ : 8 contrôle(s) en échec
+(exit=1)
+
+$ ./release-gate.sh shopapi:1.4.2
+== Porte de release : shopapi:1.4.2
+  OK     label org.opencontainers.image.version=1.4.2
+  OK     label org.opencontainers.image.revision=31ffc07
+  OK     label org.opencontainers.image.source=https://github.com/Altex25/docker
+  OK     utilisateur non-root (1000:1000)
+  OK     HEALTHCHECK (wget -q -O /dev/null http://127.0.0.1:3000/health)
+  ÉCHEC  26 CVE HIGH/CRITICAL corrigeables :
+           brace-expansion 2.0.1 : 5 CVE (HIGH), corrigé en 5.0.10, 3.0.7, 2.1.5, 1.1.19
+           cross-spawn 7.0.3 : 1 CVE (HIGH), corrigé en 7.0.5, 6.0.6
+           glob 10.4.2 : 1 CVE (HIGH), corrigé en 11.1.0, 10.5.0
+           ip-address 9.0.5 : 1 CVE (HIGH), corrigé en 10.3.1
+           libcrypto3 3.5.6-r0 : 2 CVE (HIGH), corrigé en 3.5.8-r0
+           libssl3 3.5.6-r0 : 2 CVE (HIGH), corrigé en 3.5.8-r0
+           minimatch 9.0.5 : 3 CVE (HIGH), corrigé en 10.2.1, 9.0.6, 8.0.5, 7.4.7, 6.2.1, 5.1.7, 4.2.4, 3.1.3
+           pacote 18.0.6 : 1 CVE (HIGH), corrigé en 21.5.1
+           … et 2 autre(s) paquet(s)
+  OK     aucun identifiant dans les variables ENV de l'image
+  OK     aucun secret détecté
+== REFUSÉ : 1 contrôle(s) en échec
+(exit=1)
+
+# (attestations nettoyées avec cosign clean, puis publication unique)
+$ ./release-gate.sh shopapi:1.4.3 --push registry.local:5000/shopapi:1.4.3   (1re publication)
+== ACCEPTÉ
+  OK     poussé : registry.local:5000/shopapi@sha256:e724fbb5406fdb5ee89a782cea7094f6971d9319bcf06adf2d2d6857f7302b3a
+  OK     SBOM SPDX (syft) : supply/sbom-shopapi-1.4.3.spdx.json (132 paquets)
+  OK     SBOM CycloneDX (trivy, pour les rescans) : supply/sbom-shopapi-1.4.3.trivy.cdx.json (131 composants)
+  OK     signé et attesté (SBOM SPDX + CycloneDX), vérifié avec supply/cosign.pub
+== PUBLIÉ : registry.local:5000/shopapi@sha256:e724fbb5406fdb5ee89a782cea7094f6971d9319bcf06adf2d2d6857f7302b3a
+
+$ ./release-gate.sh shopapi:1.4.3 --push registry.local:5000/shopapi:1.4.3   (relance : idempotente)
+== ACCEPTÉ
+  OK     déjà publié, signé et attesté : registry.local:5000/shopapi@sha256:e724fbb5406fdb5ee89a782cea7094f6971d9319bcf06adf2d2d6857f7302b3a
+(exit=0)
+
+# Immutabilité : une autre image poussée sous le tag semver déjà publié
+$ printf "FROM shopapi:1.4.3
+LABEL rebuilt=true
+" | docker build -t shopapi:1.4.3-rebuild - && ./release-gate.sh shopapi:1.4.3-rebuild --push registry.local:5000/shopapi:1.4.3
+== Porte de release : shopapi:1.4.3-rebuild
+  OK     label org.opencontainers.image.version=1.4.3
+  OK     label org.opencontainers.image.revision=85ced7e
+  OK     label org.opencontainers.image.source=https://github.com/Altex25/docker
+  OK     utilisateur non-root (65532:65532)
+  OK     HEALTHCHECK (/nodejs/bin/node -e fetch('http://127.0.0.1:3000/health').then(r=>proc)
+  OK     aucune CVE HIGH/CRITICAL corrigeable
+  OK     aucun identifiant dans les variables ENV de l'image
+  OK     aucun secret détecté
+== ACCEPTÉ
+  ÉCHEC  registry.local:5000/shopapi:1.4.3 existe déjà avec un autre digest (sha256:e724fbb5406fdb5ee89a782cea7094f6971d9319bcf06adf2d2d6857f7302b3a) : les tags semver sont immuables
+(exit=1)
+
+$ cosign tree registry.local:5000/shopapi:1.4.3
+📦 Supply Chain Security Related artifacts for an image: registry.local:5000/shopapi:1.4.3
+└── 💾 Attestations for an image tag: registry.local:5000/shopapi:sha256-e724fbb5406fdb5ee89a782cea7094f6971d9319bcf06adf2d2d6857f7302b3a.att
+   ├── 🍒 sha256:a5c9ff68952c1187e6ca0412f2b13c059f995765ea850888aaceff5b5825243b
+   └── 🍒 sha256:4e4c17c356bd8d79e007de4edaa4b33404e5659ec5532745359499b5f4d2bba3
+└── 🔐 Signatures for an image tag: registry.local:5000/shopapi:sha256-e724fbb5406fdb5ee89a782cea7094f6971d9319bcf06adf2d2d6857f7302b3a.sig
+   └── 🍒 sha256:381b006a6f4c8af3fa7fe7f2fcc8afd9f7114145be4f910e727d83c98b3e2384

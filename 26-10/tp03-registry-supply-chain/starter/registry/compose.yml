@@ -1,6 +1,58 @@
-# Registre "de dev" monté à la va-vite : à sécuriser (TLS, auth, persistance, suppression autorisée)
+name: shop-registry
+
+x-environment: &environment
+  REGISTRY_HTTP_SECRET: ${REGISTRY_HTTP_SECRET:?lancer ./init.sh}
+  OTEL_TRACES_EXPORTER: none
+
+x-healthcheck: &healthcheck
+  test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5002/debug/health"]
+  interval: 10s
+  timeout: 3s
+  start_period: 5s
+  retries: 3
+
 services:
   registry:
-    image: registry:2
+    image: registry:3.0.0
+    restart: unless-stopped
     ports:
       - "5000:5000"
+    environment: *environment
+    volumes:
+      - ./config.yml:/etc/distribution/config.yml:ro
+      - ./certs/registry.crt:/certs/registry.crt:ro
+      - ./certs/registry.key:/certs/registry.key:ro
+      - ./auth/htpasswd:/auth/htpasswd:ro
+      - registry-data:/var/lib/registry
+    healthcheck: *healthcheck
+
+  mirror:
+    image: registry:3.0.0
+    restart: unless-stopped
+    ports:
+      - "5001:5000"
+    environment: *environment
+    volumes:
+      - ./mirror.yml:/etc/distribution/config.yml:ro
+      - mirror-data:/var/lib/registry
+    healthcheck: *healthcheck
+
+  ui:
+    image: joxit/docker-registry-ui:2.5.7
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      REGISTRY_TITLE: Shop SAS
+      NGINX_PROXY_PASS_URL: https://registry:5000
+      SINGLE_REGISTRY: "true"
+      REGISTRY_SECURED: "true"
+      DELETE_IMAGES: "true"
+      SHOW_CONTENT_DIGEST: "true"
+    depends_on:
+      registry:
+        condition: service_healthy
+
+volumes:
+  registry-data:
+  mirror-data:

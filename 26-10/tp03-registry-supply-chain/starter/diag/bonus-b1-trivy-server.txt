@@ -1,0 +1,11 @@
+# Runner CI neuf (aucun cache) : mode autonome, la base est téléchargée à chaque job
+$ trivy image --severity HIGH,CRITICAL --ignore-unfixed shopapi:1.4.2   -> 26 CVE en 7.1 s
+
+# Runner CI neuf : mode client, la base reste sur le serveur partagé
+$ trivy image --server http://localhost:4954 --token *** --severity HIGH,CRITICAL --ignore-unfixed shopapi:1.4.2   -> 26 CVE en 1.0 s
+
+$ trivy image --server http://localhost:4954 shopapi:1.4.2   (sans jeton)
+invalid token
+
+# Taille de la base téléchargée par un runner autonome : 1.5G ; base du serveur : 1.5G
+# Mise à jour de la base (planifiée, par exemple toutes les 6 h) : cd scan && docker compose --profile update run --rm db-update && docker compose restart trivy

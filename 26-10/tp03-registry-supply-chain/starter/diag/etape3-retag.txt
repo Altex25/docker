@@ -1,0 +1,28 @@
+$ crane digest registry.local:5000/shopapi:1.4.2
+sha256:e9cc6195b6d0896e586e38720b3479f0e65a3b60462bf3bed7587e771223ff82
+
+$ crane tag registry.local:5000/shopapi:1.4.2 1.4 && crane tag registry.local:5000/shopapi:1.4.2 1
+2026/10/26 13:47:00 registry.local:5000/shopapi:1.4: digest: sha256:e9cc6195b6d0896e586e38720b3479f0e65a3b60462bf3bed7587e771223ff82 size: 856
+2026/10/26 13:47:00 registry.local:5000/shopapi:1: digest: sha256:e9cc6195b6d0896e586e38720b3479f0e65a3b60462bf3bed7587e771223ff82 size: 856
+$ crane ls registry.local:5000/shopapi
+1
+1.4
+1.4.2
+$ for t in 1.4.2 1.4 1; do crane digest registry.local:5000/shopapi:$t; done
+1.4.2  sha256:e9cc6195b6d0896e586e38720b3479f0e65a3b60462bf3bed7587e771223ff82
+1.4    sha256:e9cc6195b6d0896e586e38720b3479f0e65a3b60462bf3bed7587e771223ff82
+1      sha256:e9cc6195b6d0896e586e38720b3479f0e65a3b60462bf3bed7587e771223ff82
+
+$ skopeo copy --all --preserve-digests docker://registry.local:5000/shopapi:1.4.2 docker://registry.local:5000/prod/shopapi:1.4.2
+Copying config sha256:d49b76901a6dda51c42216ea3deb6c1b2d5617c50a222804bd01861f5389fa48
+Writing manifest to image destination
+Writing manifest list to image destination
+Storing list signatures
+$ skopeo inspect --raw docker://registry.local:5000/prod/shopapi:1.4.2 | sha256sum
+sha256:e9cc6195b6d0896e586e38720b3479f0e65a3b60462bf3bed7587e771223ff82
+$ crane digest registry.local:5000/prod/shopapi:1.4.2
+sha256:e9cc6195b6d0896e586e38720b3479f0e65a3b60462bf3bed7587e771223ff82
+
+# Aucune couche transférée par le client : seuls des manifestes (crane tag) ou des montages de blobs entre dépôts (skopeo) circulent
+$ docker image ls | grep -c 'registry.local:5000/prod'
+0

@@ -1,0 +1,40 @@
+$ cosign sign --fulcio-auth-flow device registry.local:5000/shopapi@sha256:e724fbb5…   (lancé par Alexandre, connexion GitHub)
+  -> tlog entry created with index: 3487377014
+
+$ cosign verify --certificate-identity-regexp '.+' --certificate-oidc-issuer https://github.com/login/oauth registry.local:5000/shopapi:1.4.3
+  Verification for registry.local:5000/shopapi:1.4.3 --
+  The following checks were performed on each of these signatures:
+    - The cosign claims were validated
+    - Existence of the claims in the transparency log was verified offline
+    - The code-signing certificate was verified using trusted certificate authority certificates
+{"issuer":"https://github.com/login/oauth","subject":"al***@free.fr","logIndex":3487377014,"image":"sha256:e724fbb5406fdb5ee89a782cea7094f6971d9319bcf06adf2d2d6857f7302b3a"}
+
+$ cosign verify --certificate-identity autre@exemple.com --certificate-oidc-issuer https://github.com/login/oauth registry.local:5000/shopapi:1.4.3
+  Error: no matching signatures: nil certificate provided
+   none of the expected identities matched what was in the certificate, got subjects [a***@free.fr] with issuer https://github.com/login/oauth
+(exit=12)
+
+$ cosign verify --key supply/cosign.pub --insecure-ignore-tlog registry.local:5000/shopapi:1.4.3   (signature par clé, toujours valide)
+  -> valide
+
+$ cosign tree registry.local:5000/shopapi:1.4.3
+📦 Supply Chain Security Related artifacts for an image: registry.local:5000/shopapi:1.4.3
+└── 💾 Attestations for an image tag: registry.local:5000/shopapi:sha256-e724fbb5406fdb5ee89a782cea7094f6971d9319bcf06adf2d2d6857f7302b3a.att
+   ├── 🍒 sha256:a5c9ff68952c1187e6ca0412f2b13c059f995765ea850888aaceff5b5825243b
+   └── 🍒 sha256:4e4c17c356bd8d79e007de4edaa4b33404e5659ec5532745359499b5f4d2bba3
+└── 🔐 Signatures for an image tag: registry.local:5000/shopapi:sha256-e724fbb5406fdb5ee89a782cea7094f6971d9319bcf06adf2d2d6857f7302b3a.sig
+   ├── 🍒 sha256:381b006a6f4c8af3fa7fe7f2fcc8afd9f7114145be4f910e727d83c98b3e2384
+   └── 🍒 sha256:381b006a6f4c8af3fa7fe7f2fcc8afd9f7114145be4f910e727d83c98b3e2384
+
+# Entrée publique Rekor : curl https://rekor.sigstore.dev/api/v1/log/entries?logIndex=3487377014
+logIndex=3487377014  integratedTime=1793023839 (2026-10-26 14:10:39 UTC)  preuves : inclusionProof, signedEntryTimestamp
+type=hashedrekord v0.0.1  empreinte du contenu signé=sha256:381b006a6f4c8af3fa7fe7f2fcc8afd9f7114145be4f910e727d83c98b3e2384
+certificat :
+  issuer= /O=sigstore.dev/CN=sigstore-intermediate
+  notBefore=Oct 26 14:10:39 2026 GMT
+  notAfter=Oct 26 14:20:39 2026 GMT
+              X509v3 Subject Alternative Name: critical
+                  email:al***@free.fr
+              1.3.6.1.4.1.57264.1.1: 
+                  https://github.com/login/oauth
+Le nom registry.local:5000 apparaît-il dans l'entrée Rekor ? non

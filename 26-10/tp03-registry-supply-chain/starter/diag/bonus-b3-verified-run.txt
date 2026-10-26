@@ -1,0 +1,28 @@
+$ ./verified-run.sh -d --name vr-api -p 3003:3000 registry.local:5000/shopapi:1.4.3
+vérifié : registry.local:5000/shopapi@sha256:e724fbb5406fdb5ee89a782cea7094f6971d9319bcf06adf2d2d6857f7302b3a
+5c5692625c85
+(exit=0)
+$ docker inspect vr-api --format '{{.Config.Image}}'
+registry.local:5000/shopapi@sha256:e724fbb5406fdb5ee89a782cea7094f6971d9319bcf06adf2d2d6857f7302b3a
+$ curl localhost:3003/ -> {"service":"shopapi","version":"1.4.3"}
+
+$ ./verified-run.sh --rm registry.local:5000/demo:1.0.0 echo hello   (jamais signée)
+REFUSÉ : registry.local:5000/demo:1.0.0 (sha256:884eb2dbfc4f9e234cfd3e9e104571f2aa66aecdb770314bf1c19ec892496b7c) n'est pas signée par supply/cosign.pub
+(exit=1)
+
+$ ./verified-run.sh --rm registry.local:5000/prod/shopapi:1.4.2 node -v   (signature copiée par cosign copy)
+vérifié : registry.local:5000/prod/shopapi@sha256:e9cc6195b6d0896e586e38720b3479f0e65a3b60462bf3bed7587e771223ff82
+Unable to find image 'registry.local:5000/prod/shopapi@sha256:e9cc6195b6d0896e586e38720b3479f0e65a3b60462bf3bed7587e771223ff82' locally
+registry.local:5000/prod/shopapi@sha256:e9cc6195b6d0896e586e38720b3479f0e65a3b60462bf3bed7587e771223ff82: Pulling from prod/shopapi
+Digest: sha256:e9cc6195b6d0896e586e38720b3479f0e65a3b60462bf3bed7587e771223ff82
+Status: Downloaded newer image for registry.local:5000/prod/shopapi@sha256:e9cc6195b6d0896e586e38720b3479f0e65a3b60462bf3bed7587e771223ff82
+v20.20.2
+(exit=0)
+
+# Image modifiée puis poussée, jamais signée
+$ ./verified-run.sh --rm registry.local:5000/demo:tampered   (image modifiée, non signée)
+REFUSÉ : registry.local:5000/demo:tampered (sha256:d4ad0db6d8e03b93b1a28b3d0515061fde29d9b8acdfd72e66b7a32fb8bf2ff1) n'est pas signée par supply/cosign.pub
+(exit=1)
+$ ./verified-run.sh --rm registry.local:5000/shopapi:inexistant
+REFUSÉ : registry.local:5000/shopapi:inexistant introuvable dans le registre
+(exit=1)

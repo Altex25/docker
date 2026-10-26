@@ -1,0 +1,55 @@
+$ cd supply && cosign generate-key-pair   (mot de passe vide)
+Private key written to cosign.key
+Public key written to cosign.pub
+cosign.key
+cosign.pub
+sbom.json
+
+$ cosign sign --key supply/cosign.key --tlog-upload=false registry.local:5000/shopapi@sha256:e9cc6195b6d0896e586e38720b3479f0e65a3b60462bf3bed7587e771223ff82
+Pushing signature to: registry.local:5000/shopapi
+
+$ cosign verify --key supply/cosign.pub --insecure-ignore-tlog registry.local:5000/shopapi:1.4.2 | jq
+{"critical":{"identity":{"docker-reference":"registry.local:5000/shopapi"},"image":{"docker-manifest-digest":"sha256:e9cc6195b6d0896e586e38720b3479f0e65a3b60462bf3bed7587e771223ff82"},"type":"cosign container image signature"},"optional":null}
+  Verification for registry.local:5000/shopapi:1.4.2 --
+  The following checks were performed on each of these signatures:
+    - The cosign claims were validated
+    - The signatures were verified against the specified public key
+
+$ cosign attest --key supply/cosign.key --tlog-upload=false --type spdxjson --predicate supply/sbom.json registry.local:5000/shopapi@sha256:e9cc6195b6d0896e586e38720b3479f0e65a3b60462bf3bed7587e771223ff82
+Using payload from: supply/sbom.json
+
+$ cosign verify-attestation --key supply/cosign.pub --insecure-ignore-tlog --type spdxjson registry.local:5000/shopapi:1.4.2 | jq '.payload | @base64d | fromjson | .predicate.packages | length'
+predicateType=https://spdx.dev/Document ; sujet=registry.local:5000/shopapi@sha256:e9cc6195b6d0… ; paquets=340
+
+# Ce que la signature a créé dans le registre
+$ crane ls registry.local:5000/shopapi
+1
+1.4
+1.4.2
+sha256-e9cc6195b6d0896e586e38720b3479f0e65a3b60462bf3bed7587e771223ff82.att
+sha256-e9cc6195b6d0896e586e38720b3479f0e65a3b60462bf3bed7587e771223ff82.sig
+$ cosign tree registry.local:5000/shopapi:1.4.2
+📦 Supply Chain Security Related artifacts for an image: registry.local:5000/shopapi:1.4.2
+└── 🔐 Signatures for an image tag: registry.local:5000/shopapi:sha256-e9cc6195b6d0896e586e38720b3479f0e65a3b60462bf3bed7587e771223ff82.sig
+   └── 🍒 sha256:67f0084f5add42c5597e55d557a813d5cd76fdab7980172d5dca33455f08978b
+└── 💾 Attestations for an image tag: registry.local:5000/shopapi:sha256-e9cc6195b6d0896e586e38720b3479f0e65a3b60462bf3bed7587e771223ff82.att
+   └── 🍒 sha256:5106a16ad0b00842006adc33ed031dc5291924d2d8efdcdef13f5737a1042bae
+$ curl .../v2/_catalog
+{"repositories":["demo","prod/shopapi","shopapi"]}
+
+# Retag + re-push d une image modifiée sous le même tag
+$ printf 'FROM shopapi:1.4.2
+LABEL tampered=true
+' | docker build -t registry.local:5000/shopapi:1.4.2 - && docker push registry.local:5000/shopapi:1.4.2
+digest de shopapi:1.4.2 : avant sha256:e9cc6195b6d0… -> après sha256:0969821edccf…
+$ cosign verify --key supply/cosign.pub registry.local:5000/shopapi:1.4.2
+  -> REFUSÉ : no signatures found
+$ cosign verify --key supply/cosign.pub registry.local:5000/shopapi@sha256:e9cc6195b6d0…   (ancien digest)
+  -> signature valide
+$ cosign verify --key supply/cosign.pub registry.local:5000/prod/shopapi:1.4.2   (copie skopeo, même digest que l'original)
+  -> REFUSÉ : no signatures found
+$ cosign copy registry.local:5000/shopapi@sha256:e9cc6195b6d0… registry.local:5000/prod/shopapi:1.4.2 && cosign verify ...
+  -> signature valide
+$ crane tag registry.local:5000/shopapi@sha256:e9cc6195b6d0… 1.4.2   (restauration du tag)
+registry.local:5000/shopapi:1.4.2: digest: sha256:e9cc6195b6d0896e586e38720b3479f0e65a3b60462bf3bed7587e771223ff82 size: 856
+  -> signature valide

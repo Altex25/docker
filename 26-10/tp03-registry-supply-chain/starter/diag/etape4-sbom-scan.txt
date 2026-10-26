@@ -1,0 +1,62 @@
+$ syft shopapi:1.4.2 -o spdx-json > sbom.json ; jq ".packages | length" sbom.json
+340
+--- répartition par type (purl)
+  18 apk
+   1 generic
+ 320 npm
+   1 oci
+
+$ trivy image --severity HIGH,CRITICAL --ignore-unfixed shopapi:1.4.2
+  Node.js | brace-expansion 2.0.1 | CVE-2026-102276 HIGH | corrigé en 5.0.10, 3.0.7, 2.1.5, 1.1.19
+  Node.js | brace-expansion 2.0.1 | CVE-2026-102278 HIGH | corrigé en 5.0.11, 3.0.8, 2.1.6, 1.1.20
+  Node.js | brace-expansion 2.0.1 | CVE-2026-13149 HIGH | corrigé en 5.0.7, 1.1.16, 2.1.2
+  Node.js | brace-expansion 2.0.1 | CVE-2026-14257 HIGH | corrigé en 5.0.8, 3.0.3, 2.1.3, 1.1.17
+  Node.js | brace-expansion 2.0.1 | CVE-2026-69152 HIGH | corrigé en 1.1.18, 2.1.4, 3.0.6, 5.0.9
+  Node.js | cross-spawn 7.0.3 | CVE-2024-21538 HIGH | corrigé en 7.0.5, 6.0.6
+  Node.js | glob 10.4.2 | CVE-2025-64756 HIGH | corrigé en 11.1.0, 10.5.0
+  Node.js | ip-address 9.0.5 | CVE-2026-69192 HIGH | corrigé en 10.3.1
+  Node.js | minimatch 9.0.5 | CVE-2026-26996 HIGH | corrigé en 10.2.1, 9.0.6, 8.0.5, 7.4.7, 6.2.1, 5.1.7, 4.2.4, 3.1.3
+  Node.js | minimatch 9.0.5 | CVE-2026-27903 HIGH | corrigé en 10.2.3, 9.0.7, 8.0.6, 7.4.8, 6.2.2, 5.1.8, 4.2.5, 3.1.3
+  Node.js | minimatch 9.0.5 | CVE-2026-27904 HIGH | corrigé en 10.2.3, 9.0.7, 8.0.6, 7.4.8, 6.2.2, 5.1.8, 4.2.5, 3.1.4
+  Node.js | pacote 18.0.6 | CVE-2026-9496 HIGH | corrigé en 21.5.1
+  Node.js | sigstore 2.3.1 | CVE-2026-48815 HIGH | corrigé en 4.1.1
+  Node.js | tar 6.2.1 | CVE-2026-23745 HIGH | corrigé en 7.5.3
+  Node.js | tar 6.2.1 | CVE-2026-23950 HIGH | corrigé en 7.5.4
+  Node.js | tar 6.2.1 | CVE-2026-24842 HIGH | corrigé en 7.5.7
+  Node.js | tar 6.2.1 | CVE-2026-26960 HIGH | corrigé en 7.5.8
+  Node.js | tar 6.2.1 | CVE-2026-29786 HIGH | corrigé en 7.5.10
+  Node.js | tar 6.2.1 | CVE-2026-31802 HIGH | corrigé en 7.5.11
+  Node.js | tar 6.2.1 | CVE-2026-59873 CRITICAL | corrigé en 7.5.19
+  Node.js | tar 6.2.1 | CVE-2026-59874 HIGH | corrigé en 7.5.18
+  Node.js | tar 6.2.1 | CVE-2026-73566 HIGH | corrigé en 7.5.21
+  shopapi:1.4.2 (alpine 3.23.4) | libcrypto3 3.5.6-r0 | CVE-2026-14456 HIGH | corrigé en 3.5.8-r0
+  shopapi:1.4.2 (alpine 3.23.4) | libcrypto3 3.5.6-r0 | CVE-2026-45447 HIGH | corrigé en 3.5.7-r0
+  shopapi:1.4.2 (alpine 3.23.4) | libssl3 3.5.6-r0 | CVE-2026-14456 HIGH | corrigé en 3.5.8-r0
+  shopapi:1.4.2 (alpine 3.23.4) | libssl3 3.5.6-r0 | CVE-2026-45447 HIGH | corrigé en 3.5.7-r0
+cibles avec vulnérabilités : 2
+
+$ trivy image --severity HIGH,CRITICAL --ignore-unfixed shopapi:1.4.2-distroless
+  shopapi:1.4.2-distroless (debian 12.13) | libssl3 3.0.18-1~deb12u2 | CVE-2026-28387 HIGH | corrigé en 3.0.19-1~deb12u2
+  shopapi:1.4.2-distroless (debian 12.13) | libssl3 3.0.18-1~deb12u2 | CVE-2026-28388 HIGH | corrigé en 3.0.19-1~deb12u2
+  shopapi:1.4.2-distroless (debian 12.13) | libssl3 3.0.18-1~deb12u2 | CVE-2026-28389 HIGH | corrigé en 3.0.19-1~deb12u2
+  shopapi:1.4.2-distroless (debian 12.13) | libssl3 3.0.18-1~deb12u2 | CVE-2026-28390 HIGH | corrigé en 3.0.19-1~deb12u2
+  shopapi:1.4.2-distroless (debian 12.13) | libssl3 3.0.18-1~deb12u2 | CVE-2026-31789 CRITICAL | corrigé en 3.0.19-1~deb12u2
+  shopapi:1.4.2-distroless (debian 12.13) | libssl3 3.0.18-1~deb12u2 | CVE-2026-45447 HIGH | corrigé en 3.0.20-1~deb12u2
+  shopapi:1.4.2-distroless (debian 12.13) | libssl3 3.0.18-1~deb12u2 | CVE-2026-84782 HIGH | corrigé en 3.0.22-1~deb12u2
+cibles avec vulnérabilités : 1
+
+$ trivy image --severity HIGH,CRITICAL --ignore-unfixed shopapi:legacy | résumé
+HIGH: 21, CRITICAL: 1
+
+$ trivy image --scanners secret shopapi:legacy
+  /app/.env ligne 4 | aws-access-key-id (CRITICAL) | AWS_SECRET_ACCESS_KEY=********************
+  /app/diag/legacy.txt ligne 51 | aws-access-key-id (CRITICAL) | AWS_SECRET_ACCESS_KEY=********************
+$ trivy image --scanners secret shopapi:1.4.2
+  aucun secret
+
+$ trivy image --scanners misconfig --image-config-scanners secret,misconfig shopapi:legacy   (ENV dans la config)
+  shopapi:legacy | DS-0002 HIGH | Image user should not be 'root'
+  shopapi:legacy | DS-0017 HIGH | 'RUN <package-manager> update' instruction alone
+  shopapi:legacy | DS-0026 LOW | No HEALTHCHECK defined
+  shopapi:legacy | DS-0029 HIGH | 'apt-get' missing '--no-install-recommends'
+  shopapi:legacy | DS-0029 HIGH | 'apt-get' missing '--no-install-recommends'

@@ -1,0 +1,50 @@
+$ api/seed-demo.sh
+1.0.0 (2026-10-01) 
+1.1.0 (2026-10-06) 
+2.0.0 (2026-10-11) -> aussi: main-9a8b7c6
+main-0a1b2c3 (2026-10-12) 
+main-1b2c3d4 (2026-10-14) -> aussi: pr-42
+main-2c3d4e5 (2026-10-16) 
+main-3d4e5f6 (2026-10-18) 
+main-4e5f6a7 (2026-10-20) 
+main-5f6a7b8 (2026-10-22) -> aussi: latest
+
+$ curl .../v2/demo/tags/list
+1.0.0 1.1.0 2.0.0 latest main-0a1b2c3 main-1b2c3d4 main-2c3d4e5 main-3d4e5f6 main-4e5f6a7 main-5f6a7b8 main-9a8b7c6 pr-42
+
+$ DRY_RUN=1 ./retention.sh demo 3
+garde     latest main-5f6a7b8 (2026-10-22T10:57:00Z)
+garde     main-4e5f6a7 (2026-10-20T10:57:00Z)
+garde     main-3d4e5f6 (2026-10-18T10:57:00Z)
+supprime  main-2c3d4e5 (sha256:b6f6207464040e78520e4f31daed5597f515e64caf1c4f64edadcfaa0c4cf4ff) [dry-run]
+supprime  main-1b2c3d4 pr-42 (sha256:3466215e3e76fa22f1ac32f0083fc8946494e8ad235b6c82cbe8e06c7469a499) [dry-run]
+supprime  main-0a1b2c3 (sha256:d1168dcc206cf80398800eab6ded5cb078cacb115ef6c3dd323c36c813704411) [dry-run]
+supprime  main-9a8b7c6 : tag seul, l'image reste publiée sous 2.0.0 [dry-run]
+
+$ DRY_RUN=0 ./retention.sh demo 3
+garde     latest main-5f6a7b8 (2026-10-22T10:57:00Z)
+garde     main-4e5f6a7 (2026-10-20T10:57:00Z)
+garde     main-3d4e5f6 (2026-10-18T10:57:00Z)
+supprime  main-2c3d4e5 (sha256:b6f6207464040e78520e4f31daed5597f515e64caf1c4f64edadcfaa0c4cf4ff) -> HTTP 202
+supprime  main-1b2c3d4 pr-42 (sha256:3466215e3e76fa22f1ac32f0083fc8946494e8ad235b6c82cbe8e06c7469a499) -> HTTP 202
+supprime  main-0a1b2c3 (sha256:d1168dcc206cf80398800eab6ded5cb078cacb115ef6c3dd323c36c813704411) -> HTTP 202
+supprime  main-9a8b7c6 : tag seul, l'image reste publiée sous 2.0.0 -> HTTP 202
+
+$ curl .../v2/demo/tags/list
+1.0.0 1.1.0 2.0.0 latest main-3d4e5f6 main-4e5f6a7 main-5f6a7b8
+
+# Garbage collection (registry:3.0.0) - blobs avant : 56M
+$ docker compose exec registry registry garbage-collect --dry-run --delete-untagged /etc/distribution/config.yml
+51 blobs marked, 102 blobs and 47 manifests eligible for deletion
+$ docker compose exec registry registry garbage-collect --delete-untagged /etc/distribution/config.yml
+blobs supprimés : 102
+blobs après GC : 55M
+
+# Les images restantes sont intactes
+shopapi:1.4.2 : manifeste arm64 sha256:e59b712a0abe… HTTP 200
+demo:1.0.0 : manifeste arm64 sha256:44bba32aeabc… HTTP 200
+demo:2.0.0 : manifeste arm64 sha256:8abb6b91d28a… HTTP 200
+demo:latest : manifeste arm64 sha256:388a5a432a3d… HTTP 200
+demo:main-4e5f6a7 : manifeste arm64 sha256:1fb52205be26… HTTP 200
+$ docker pull registry.local:5000/demo:2.0.0
+registry.local:5000/demo:2.0.0

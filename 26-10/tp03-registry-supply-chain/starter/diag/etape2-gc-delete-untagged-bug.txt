@@ -1,0 +1,34 @@
+$ DRY_RUN=1 ./retention.sh demo 4
+garde     main-4e5f6a7 (2026-10-20T10:38:53Z)
+garde     main-3d4e5f6 (2026-10-18T10:38:53Z)
+garde     main-2c3d4e5 (2026-10-16T10:38:53Z)
+garde     pr-42 (2026-10-14T10:38:53Z)
+conserve  main-1b2c3d4 : même manifeste que pr-42 (sha256:f10d7caecfab5b12e1de9cbb40dd7fdd8ad9996c6e2887fecbb75b0325df490f)
+supprime  main-0a1b2c3 (sha256:9488a94cb39138688e070fa26d160f4b2b290c5ea3475308259318bf67ae1995) [dry-run]
+
+$ DRY_RUN=0 ./retention.sh demo 3
+garde     main-4e5f6a7 (2026-10-20T10:38:53Z)
+garde     main-3d4e5f6 (2026-10-18T10:38:53Z)
+garde     main-2c3d4e5 (2026-10-16T10:38:53Z)
+supprime  pr-42 (sha256:f10d7caecfab5b12e1de9cbb40dd7fdd8ad9996c6e2887fecbb75b0325df490f) -> HTTP 202
+supprime  main-1b2c3d4 : même manifeste que pr-42, déjà supprimé
+supprime  main-0a1b2c3 (sha256:9488a94cb39138688e070fa26d160f4b2b290c5ea3475308259318bf67ae1995) -> HTTP 202
+
+$ curl .../v2/demo/tags/list
+1.0.0 1.1.0 2.0.0 main-2c3d4e5 main-3d4e5f6 main-4e5f6a7
+
+# Garbage collection (blobs : 54M)
+$ docker compose exec registry registry garbage-collect --dry-run --delete-untagged /etc/docker/registry/config.yml | tail -3
+blob eligible for deletion: sha256:f83032f7191a93034cf4e1ab6848ce3dfaf3797107d6568e1093076c33028528
+blob eligible for deletion: sha256:0fa2505794c9487bae76eb4347811ebcc774cc16805f5f122b8da4ecec1d1129
+blob eligible for deletion: sha256:24d6e38ac85fb4545f6f366179a410452948a1b0dbef91fb15d409a257544c75
+$ docker compose exec registry registry garbage-collect --delete-untagged /etc/docker/registry/config.yml | tail -2
+blobs supprimés : 96
+blobs après GC : 420K
+
+# Après GC --delete-untagged (registry:2.8.3) : les manifestes enfants des index OCI ont été supprimés
+shopapi:1.4.2 : index -> manifeste arm64 sha256:e59b712a0abe… : HTTP 404
+demo:1.0.0 : index -> manifeste arm64 sha256:5da23ab979a6… : HTTP 404
+demo:main-4e5f6a7 : index -> manifeste arm64 sha256:dd173d468e18… : HTTP 404
+$ docker pull registry.local:5000/demo:1.0.0
+short read: expected 1338 bytes but got 0: unexpected EOF

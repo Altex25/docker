@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1.7
 ARG NODE_IMAGE=node:20.20.2-alpine3.23@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+ARG DISTROLESS_IMAGE=gcr.io/distroless/nodejs20-debian12:nonroot@sha256:2cd820156cf039c8b54ae2d2a97e424b6729070714de8707a6b79f20d56f6a9a
 
 FROM ${NODE_IMAGE} AS base
 WORKDIR /app
@@ -23,8 +24,9 @@ COPY test ./test
 RUN npm run lint && npm test
 
 # node_modules est installé sur alpine (musl) : à revoir si une dépendance native apparaît.
-FROM gcr.io/distroless/nodejs20-debian12:nonroot@sha256:2cd820156cf039c8b54ae2d2a97e424b6729070714de8707a6b79f20d56f6a9a AS runtime-distroless
+FROM ${DISTROLESS_IMAGE} AS runtime-distroless
 
+ARG DISTROLESS_IMAGE
 ARG APP_VERSION=0.0.0-dev
 ARG GIT_SHA=unknown
 ARG SOURCE_URL=https://github.com/Altex25/docker
@@ -35,7 +37,7 @@ LABEL org.opencontainers.image.title="shopapi" \
       org.opencontainers.image.version="${APP_VERSION}" \
       org.opencontainers.image.revision="${GIT_SHA}" \
       org.opencontainers.image.source="${SOURCE_URL}" \
-      org.opencontainers.image.base.name="gcr.io/distroless/nodejs20-debian12:nonroot"
+      org.opencontainers.image.base.name="${DISTROLESS_IMAGE}"
 
 ENV NODE_ENV=production \
     APP_VERSION=${APP_VERSION} \
@@ -61,6 +63,7 @@ CMD ["src/server.js"]
 # Doit rester la dernière étape : c'est la cible par défaut.
 FROM ${NODE_IMAGE} AS runtime
 
+ARG NODE_IMAGE
 ARG APP_VERSION=0.0.0-dev
 ARG GIT_SHA=unknown
 ARG SOURCE_URL=https://github.com/Altex25/docker
@@ -71,7 +74,7 @@ LABEL org.opencontainers.image.title="shopapi" \
       org.opencontainers.image.version="${APP_VERSION}" \
       org.opencontainers.image.revision="${GIT_SHA}" \
       org.opencontainers.image.source="${SOURCE_URL}" \
-      org.opencontainers.image.base.name="docker.io/library/node:20.20.2-alpine3.23"
+      org.opencontainers.image.base.name="${NODE_IMAGE}"
 
 ENV NODE_ENV=production \
     APP_VERSION=${APP_VERSION} \

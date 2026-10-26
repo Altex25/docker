@@ -1,0 +1,54 @@
+$ docker compose ps
+SERVICE    IMAGE                            STATUS
+mirror     registry:3.0.0                   Up 2 minutes (healthy)
+registry   registry:3.0.0                   Up 2 minutes (healthy)
+ui         joxit/docker-registry-ui:2.5.7   Up 2 minutes
+
+$ curl -k https://registry.local:5000/v2/
+HTTP/2 401 
+www-authenticate: Basic realm="Shop SAS Registry"
+$ curl --cacert ca.crt https://registry.local:5000/v2/
+HTTP 401, vérification TLS=0 (0 = OK)
+$ curl -u dev:dev-pull-2024 https://registry.local:5000/v2/_catalog
+{"repositories":["shopapi"]}
+
+$ curl -u dev:mauvais https://registry.local:5000/v2/_catalog
+HTTP 401
+
+$ docker login registry.local:5000 -u ci --password-stdin
+Login Succeeded
+$ docker tag shopapi:1.4.2 registry.local:5000/shopapi:1.4.2 && docker push registry.local:5000/shopapi:1.4.2
+1.4.2: digest: sha256:e9cc6195b6d0896e586e38720b3479f0e65a3b60462bf3bed7587e771223ff82 size: 856
+$ curl -u dev:dev-pull-2024 https://registry.local:5000/v2/_catalog
+{"repositories":["shopapi"]}
+
+
+# Mirror pull-through
+$ docker info | grep -A1 "Registry Mirrors"
+ Registry Mirrors:
+  http://localhost:5001/
+$ docker pull busybox:1.36.0   (1er pull : absent du mirror, récupéré sur Docker Hub)
+  durée du pull : 1.57 s ; stockage du mirror : 2.2M -> 4.2M ; requêtes reçues :
+    HEAD manifests 1.36.0                HTTP 200     0.00 Mo
+    GET  manifests sha256:9e2bbca07938… HTTP 200     0.00 Mo
+    GET  manifests sha256:1af0a016aaa2… HTTP 200     0.00 Mo
+    GET  blobs     sha256:3596868f4ba8… HTTP 200     0.00 Mo
+    GET  blobs     sha256:805f301826ef… HTTP 200     2.00 Mo
+$ docker image rm busybox:1.36.0 && docker pull busybox:1.36.0   (2e pull : servi par le cache du mirror)
+  durée du pull : .44 s ; stockage du mirror : 4.2M -> 4.2M ; requêtes reçues :
+    HEAD manifests 1.36.0                HTTP 200     0.00 Mo
+    GET  manifests sha256:9e2bbca07938… HTTP 200     0.00 Mo
+    GET  manifests sha256:1af0a016aaa2… HTTP 200     0.00 Mo
+    GET  blobs     sha256:3596868f4ba8… HTTP 200     0.00 Mo
+    GET  blobs     sha256:805f301826ef… HTTP 200     2.00 Mo
+$ curl http://localhost:5001/v2/_catalog
+{"repositories":["library/alpine","library/busybox"]}
+
+
+# UI (http://localhost:8080)
+$ curl http://localhost:8080/ -> HTTP 200
+$ curl http://localhost:8080/v2/_catalog (sans identifiants) -> HTTP 401
+
+# htpasswd ne gère pas les droits : dev peut pousser
+$ docker login -u dev && docker push registry.local:5000/shopapi:dev-push-test
+dev-push-test: digest: sha256:e9cc6195b6d0896e586e38720b3479f0e65a3b60462bf3bed7587e771223ff82 size: 856

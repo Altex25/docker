@@ -1,6 +1,10 @@
 # Livrable 2 : rapport de remise en conformité de `shopapi`
 
-Fichiers livrés (le code applicatif `src/`, `test/` et `package.json` n'a **pas** été modifié) :
+Fichiers livrés (le code applicatif `src/` et `test/` n'a **pas** été modifié) :
+
+> Ajout ultérieur (TP03, migration vers Node 24) : le script `test` de `package.json` est passé de `node --test test/` à
+> `node --test`, compatible avec Node 20 et 24. Le `Dockerfile` accepte aussi `--build-arg DISTROLESS_IMAGE=…`, sans changer
+> sa valeur par défaut. Voir le rapport du TP03, section 5.
 
 | Fichier | Rôle |
 |---|---|
