@@ -1,0 +1,8 @@
+$ docker compose ps
+SERVICE   STATUS                   PORTS
+adminer   Up 2 minutes (healthy)   8080/tcp
+api       Up 3 minutes (healthy)   127.0.0.1:3000->3000/tcp
+db        Up 5 minutes (healthy)   127.0.0.1:5433->5432/tcp
+redis     Up 5 minutes (healthy)   6379/tcp
+traefik   Up 3 minutes (healthy)   0.0.0.0:80->80/tcp, [::]:80->80/tcp, 127.0.0.1:8080->8080/tcp
+worker    Up 3 minutes (healthy)   9100/tcp

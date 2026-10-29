@@ -1,0 +1,18 @@
+$ docker compose -f compose.yml -f compose.override.yml -f compose.watch.yml watch --no-up &
+Watch enabled
+
+# 1. Modification de server.js depuis le Mac (action sync)
+--- sortie de compose watch
+Syncing service "api" after 1 changes were detected
+Syncing service "api" after 2 changes were detected
+--- logs de l API
+Restarting 'src/server.js'
+{"level":30,"time":1793265714812,"pid":35,"hostname":"370d822dc7a9","reload":true,"msg":"synchronisé par compose watch"}
+{"level":30,"time":1793265714817,"pid":35,"hostname":"370d822dc7a9","port":"3000","msg":"shopapi démarré"}
+RestartCount du conteneur api : 0 ; StartedAt : 2026-10-29T09:21:35.160037731Z
+
+# 2. touch sur worker/main.py (action sync+restart)
+--- sortie de compose watch
+ Container shop-worker-1 Restarting 
+service(s) ["worker"] restarted
+StartedAt du worker : avant 2026-10-29T09:21:35.158104542Z -> après 2026-10-29T09:22:08.972028139Z

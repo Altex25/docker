@@ -1,0 +1,20 @@
+# Prod (deploy.replicas: 2)
+$ docker compose -f compose.yml -f compose.prod.yml up -d --wait --scale api=3
+ Container shop-api-3 Healthy 
+ Container shop-api-3 Started 
+ Container shop-api-3 Starting 
+ Container shop-api-3 Waiting 
+$ docker compose ps api -> shop-api-1 shop-api-2 shop-api-3
+répartition Traefik sur 9 requêtes : 172.23.0.3:3000×3 172.23.0.4:3000×3 172.23.0.5:3000×3 
+$ docker compose -f compose.yml -f compose.prod.yml up -d --wait
+ Container shop-api-1 Healthy 
+ Container shop-api-1 Running 
+ Container shop-api-1 Waiting 
+ Container shop-api-2 Healthy 
+ Container shop-api-2 Running 
+ Container shop-api-2 Waiting 
+ Container shop-api-3 Removed 
+ Container shop-api-3 Removing 
+ Container shop-api-3 Stopped 
+ Container shop-api-3 Stopping 
+$ docker compose ps api -> shop-api-1 shop-api-2

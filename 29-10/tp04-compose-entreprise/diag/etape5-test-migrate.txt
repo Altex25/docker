@@ -1,0 +1,43 @@
+$ make prod-test
+COMPOSE="docker compose -f compose.yml -f compose.prod.yml" ./smoke-test.sh
+== Smoke test : http://api.localhost
+  OK     /ready : {"status":"ready","checks":{"db":"ok","redis":"ok"}}
+  OK     /products : 3 produits, X-Cache: HIT au second appel
+  OK     commande 2 (quantité 2) : pending -> confirmed par le worker
+  OK     commande 3 (quantité 500) : pending -> rejected par le worker
+== OK
+(exit=0)
+
+$ make prod-migrate
+usage : make prod-migrate M=002-add-sku.sql
+make: *** [prod-migrate] Error 2
+(exit=2)
+
+$ make prod-migrate M=inexistant.sql
+migration introuvable : inexistant.sql
+
+
+$ make prod-migrate M=002-add-sku.sql
+ALTER TABLE
+UPDATE 3
+ALTER TABLE
+CREATE INDEX
+INSERT 0 1
+001-init 2026-10-29 09:14:30.986438+00
+002-add-sku 2026-10-29 09:20:11.990019+00
+(exit=0)
+
+$ make prod-migrate M=002-add-sku.sql   (rejouée : idempotente)
+INSERT 0 0
+001-init 2026-10-29 09:14:30.986438+00
+002-add-sku 2026-10-29 09:20:11.990019+00
+
+$ docker compose exec db psql -U shop -d shop -c "select id, sku, name from products"
+ id |    sku    |       name        
+----+-----------+-------------------
+  1 | SKU-00001 | Clavier mécanique
+  2 | SKU-00002 | Écran 27"
+  3 | SKU-00003 | Souris sans fil
+(3 rows)
+
+$ docker compose ps -a migrate -> 0 conteneur(s) restant(s) (run --rm)

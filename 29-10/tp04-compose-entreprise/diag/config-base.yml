@@ -1,0 +1,261 @@
+name: shop
+services:
+  api:
+    build:
+      context: /Users/alexandre/Desktop/Ynov/M2/Docker/docker/29-10/tp04-compose-entreprise/apps/shopapi
+      dockerfile: Dockerfile
+    configs:
+      - source: db-url-node
+        target: /etc/shop/db-url.cjs
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+        required: true
+      redis:
+        condition: service_healthy
+        restart: true
+        required: true
+    environment:
+      DATABASE_HOST: db
+      DATABASE_NAME: shop
+      DATABASE_PASSWORD_FILE: /run/secrets/db_password
+      DATABASE_PORT: "5432"
+      DATABASE_USER: shop
+      LOG_LEVEL: info
+      NODE_OPTIONS: --require /etc/shop/db-url.cjs
+      REDIS_URL: redis://redis:6379
+    healthcheck:
+      timeout: 3s
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      start_interval: 1s
+    image: shop/shopapi:dev
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.api.entrypoints: web
+      traefik.http.routers.api.rule: Host(`api.localhost`)
+      traefik.http.services.api.loadbalancer.healthcheck.interval: 5s
+      traefik.http.services.api.loadbalancer.healthcheck.path: /ready
+      traefik.http.services.api.loadbalancer.healthcheck.timeout: 2s
+      traefik.http.services.api.loadbalancer.server.port: "3000"
+    logging:
+      driver: json-file
+      options:
+        max-file: "3"
+        max-size: 10m
+    networks:
+      back: null
+      front: null
+    restart: unless-stopped
+    secrets:
+      - source: db_password
+        target: /run/secrets/db_password
+  db:
+    environment:
+      POSTGRES_DB: shop
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      POSTGRES_USER: shop
+    healthcheck:
+      test:
+        - CMD
+        - pg_isready
+        - -h
+        - 127.0.0.1
+        - -U
+        - shop
+        - -d
+        - shop
+      timeout: 3s
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      start_interval: 1s
+    image: postgres:16.4-alpine@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c
+    logging:
+      driver: json-file
+      options:
+        max-file: "3"
+        max-size: 10m
+    networks:
+      back: null
+    restart: unless-stopped
+    secrets:
+      - source: db_password
+        target: /run/secrets/db_password
+    volumes:
+      - type: volume
+        source: pgdata
+        target: /var/lib/postgresql/data
+        volume: {}
+      - type: bind
+        source: /Users/alexandre/Desktop/Ynov/M2/Docker/docker/29-10/tp04-compose-entreprise/db/init.sql
+        target: /docker-entrypoint-initdb.d/001-init.sql
+        read_only: true
+        bind: {}
+  redis:
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      timeout: 3s
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      start_interval: 1s
+    image: redis:7.4-alpine@sha256:8da19c7399dca900c6822a1cf30f9d2285585e2c4b457ff4095b0f4500054d3f
+    logging:
+      driver: json-file
+      options:
+        max-file: "3"
+        max-size: 10m
+    networks:
+      back: null
+    restart: unless-stopped
+    volumes:
+      - type: volume
+        source: redisdata
+        target: /data
+        volume: {}
+  traefik:
+    environment:
+      TRAEFIK_ACCESSLOG: "true"
+      TRAEFIK_ACCESSLOG_FORMAT: json
+      TRAEFIK_ENTRYPOINTS_WEB_ADDRESS: :80
+      TRAEFIK_LOG_LEVEL: INFO
+      TRAEFIK_PING: "true"
+      TRAEFIK_PROVIDERS_DOCKER: "true"
+      TRAEFIK_PROVIDERS_DOCKER_EXPOSEDBYDEFAULT: "false"
+      TRAEFIK_PROVIDERS_DOCKER_NETWORK: shop_front
+    healthcheck:
+      test:
+        - CMD
+        - traefik
+        - healthcheck
+        - --ping
+      timeout: 3s
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      start_interval: 1s
+    image: traefik:v3.6.25@sha256:31267173a15b4944e797a76ffd9c419707c8d8b32fe5b610f80cd0cfa05f372d
+    logging:
+      driver: json-file
+      options:
+        max-file: "3"
+        max-size: 10m
+    networks:
+      front: null
+    ports:
+      - mode: ingress
+        target: 80
+        published: "80"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        read_only: true
+        bind: {}
+  worker:
+    build:
+      context: /Users/alexandre/Desktop/Ynov/M2/Docker/docker/29-10/tp04-compose-entreprise/apps/shop-worker
+      dockerfile: Dockerfile
+      secrets:
+        - source: pipconf
+    configs:
+      - source: db-url-python
+        target: /etc/shop/python/sitecustomize.py
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+        required: true
+      redis:
+        condition: service_healthy
+        restart: true
+        required: true
+    environment:
+      DATABASE_HOST: db
+      DATABASE_NAME: shop
+      DATABASE_PASSWORD_FILE: /run/secrets/db_password
+      DATABASE_PORT: "5432"
+      DATABASE_USER: shop
+      LOG_LEVEL: INFO
+      PYTHONPATH: /etc/shop/python
+      REDIS_URL: redis://redis:6379
+    healthcheck:
+      timeout: 3s
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      start_interval: 1s
+    image: shop/shop-worker:dev
+    logging:
+      driver: json-file
+      options:
+        max-file: "3"
+        max-size: 10m
+    networks:
+      back: null
+    restart: unless-stopped
+    secrets:
+      - source: db_password
+        target: /run/secrets/db_password
+networks:
+  back:
+    name: shop_back
+    internal: true
+  front:
+    name: shop_front
+volumes:
+  pgdata:
+    name: shop_pgdata
+  redisdata:
+    name: shop_redisdata
+secrets:
+  db_password:
+    name: shop_db_password
+    file: /Users/alexandre/Desktop/Ynov/M2/Docker/docker/29-10/tp04-compose-entreprise/secrets/db_password.txt
+  pipconf:
+    name: shop_pipconf
+    file: /Users/alexandre/Desktop/Ynov/M2/Docker/docker/29-10/tp04-compose-entreprise/apps/shop-worker/pip.conf
+configs:
+  db-url-node:
+    name: shop_db-url-node
+    file: /Users/alexandre/Desktop/Ynov/M2/Docker/docker/29-10/tp04-compose-entreprise/config/db-url.cjs
+  db-url-python:
+    name: shop_db-url-python
+    file: /Users/alexandre/Desktop/Ynov/M2/Docker/docker/29-10/tp04-compose-entreprise/config/python/sitecustomize.py
+x-db-client-env:
+  DATABASE_HOST: db
+  DATABASE_NAME: shop
+  DATABASE_PASSWORD_FILE: /run/secrets/db_password
+  DATABASE_PORT: "5432"
+  DATABASE_USER: shop
+  REDIS_URL: redis://redis:6379
+x-healthcheck-defaults:
+  interval: 10s
+  retries: 5
+  start_interval: 1s
+  start_period: 30s
+  timeout: 3s
+x-logging:
+  driver: json-file
+  options:
+    max-file: "3"
+    max-size: 10m
+x-service-defaults:
+  logging:
+    driver: json-file
+    options:
+      max-file: "3"
+      max-size: 10m
+  restart: unless-stopped

@@ -1,0 +1,38 @@
+$ docker compose -f compose.yml -f compose.prod.yml ps api
+NAME         STATUS
+shop-api-1   Up 18 seconds (healthy)
+shop-api-2   Up 18 seconds (healthy)
+
+# Adresse de chaque réplica
+shop-api-1 : 172.23.0.3
+shop-api-2 : 172.23.0.4
+
+$ for i in $(seq 10); do curl -s http://api.localhost/ >/dev/null; done
+$ docker compose logs traefik --since <test> | jq -r "select(.RouterName) | .ServiceAddr" | sort | uniq -c
+   5 172.23.0.3:3000
+   5 172.23.0.4:3000
+
+$ curl http://api.localhost/  -> {"service":"shopapi","version":"1.4.3"}
+
+# Durcissement
+shop-traefik-1 user= read_only=true cap_drop=[ALL] security_opt=[no-new-privileges:true] mem=134217728 cpus=500000000 restart=unless-stopped log=json-filemap[max-file:3 max-size:10m]
+shop-db-1 user=70:70 read_only=true cap_drop=[ALL] security_opt=[no-new-privileges:true] mem=536870912 cpus=1000000000 restart=unless-stopped log=json-filemap[max-file:3 max-size:10m]
+shop-redis-1 user=999:1000 read_only=true cap_drop=[ALL] security_opt=[no-new-privileges:true] mem=268435456 cpus=500000000 restart=unless-stopped log=json-filemap[max-file:3 max-size:10m]
+shop-api-1 user=65532:65532 read_only=true cap_drop=[ALL] security_opt=[no-new-privileges:true] mem=268435456 cpus=500000000 restart=unless-stopped log=json-filemap[max-file:3 max-size:10m]
+shop-worker-1 user=10001:10001 read_only=true cap_drop=[ALL] security_opt=[no-new-privileges:true] mem=268435456 cpus=500000000 restart=unless-stopped log=json-filemap[max-file:3 max-size:10m]
+$ docker exec shop-api-1 /nodejs/bin/node -e "require(\"fs\").writeFileSync(\"/app/x\",\"x\")"
+EROFS: read-only file system
+$ docker exec shop-db-1 id ; docker exec shop-redis-1 id
+uid=70(postgres) gid=70(postgres) groups=70(postgres)
+uid=999(redis) gid=1000(redis) groups=1000(redis)
+
+# Exposition
+$ curl -m 3 localhost:8080/dashboard/ -> 000
+$ curl -m 3 localhost:3000/ -> 000
+$ nc -z -w2 127.0.0.1 5433 -> fermé
+$ docker exec shop-worker-1 python -c 'urlopen(https://pypi.org)'   (réseau back internal : pas d accès Internet)
+urllib.error.URLError: <urlopen error [Errno -3] Temporary failure in name resolution>
+$ docker network inspect shop_back --format '{{.Internal}} {{range .Containers}}{{.Name}} {{end}}'
+true shop-worker-1 shop-db-1 shop-api-1 shop-api-2 shop-redis-1 
+$ docker network inspect shop_front --format '{{.Internal}} {{range .Containers}}{{.Name}} {{end}}'
+false shop-traefik-1 shop-api-1 shop-api-2 

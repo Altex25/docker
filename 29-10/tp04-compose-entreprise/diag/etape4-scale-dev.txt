@@ -1,0 +1,20 @@
+$ make up
+ Container shop-api-1 Healthy 
+ Container shop-db-1 Healthy 
+ Container shop-redis-1 Healthy 
+ Container shop-traefik-1 Healthy 
+ Container shop-worker-1 Healthy 
+(exit=0)
+
+# Dev (port 127.0.0.1:3000 publié par la surcharge)
+$ docker compose up -d --scale api=3
+Error response from daemon: failed to set up container networking: driver failed programming external connectivity on endpoint shop-api-2 (969f8292c715a581f231ac8c3b021b7a68879eaba6368ffb83bc7cc938685
+$ docker compose ps -a api -> shop-api-1=running shop-api-2=created shop-api-3=created
+$ docker compose up -d --wait
+ Container shop-traefik-1 Healthy 
+$ docker compose ps api -> shop-api-1
+
+$ MIGRATION=002-add-sku.sql docker compose run --rm migrate   (commande du README, sans --profile)
+INSERT 0 0
+001-init 2026-10-29 09:14:30.986438+00
+002-add-sku 2026-10-29 09:20:11.990019+00

@@ -1,0 +1,14 @@
+$ make test
+./smoke-test.sh
+== Smoke test : http://api.localhost
+  OK     /ready : {"status":"ready","checks":{"db":"ok","redis":"ok"}}
+  OK     /products : 3 produits, X-Cache: HIT au second appel
+  OK     commande 4 (quantité 2) : pending -> confirmed par le worker
+  OK     commande 5 (quantité 500) : pending -> rejected par le worker
+== OK
+(exit=0)
+
+$ curl -s localhost:8080/api/http/routers | jq -r '.[] | "\(.name) \(.rule) \(.status)"'
+adminer@docker Host(`adminer.localhost`) enabled
+api@docker Host(`api.localhost`) enabled
+$ curl -s -o /dev/null -w '%{http_code}' localhost:8080/dashboard/ -> 200

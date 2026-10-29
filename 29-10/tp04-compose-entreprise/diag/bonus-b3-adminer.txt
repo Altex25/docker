@@ -1,0 +1,20 @@
+$ docker compose --profile tools up -d --wait
+ Container shop-adminer-1 Healthy 
+$ docker inspect shop-adminer-1 réseaux -> shop_back shop_front 
+$ curl -s -o /dev/null -w '%{http_code}' http://adminer.localhost/ -> 404   (juste après le démarrage : route pas encore publiée par Traefik)
+$ sleep 5 ; curl -s -o /dev/null -w '%{http_code}' http://adminer.localhost/ -> 200
+$ curl -s http://adminer.localhost/ | grep -o '<title>[^<]*' -> Login - Adminer
+$ docker exec shop-adminer-1 php -r 'fsockopen("db",5432)' -> db:5432 joignable
+
+# Variante A : adminer uniquement sur back (internal)
+ Container shop-adminer-1 Started 
+réseaux -> shop_back 
+$ curl -m 15 http://adminer.localhost/ -> HTTP 000
+[90m2026-10-29T09:23:39Z[0m [33mWRN[0m [1mgithub.com/traefik/traefik/v3/pkg/provider/docker/config.go:418[0m[36m >[0m [1mDefaulting to first available network ("shop_back") for container "/shop-adminer-1".[0m 
+
+# Variante B : adminer uniquement sur front
+ Container shop-adminer-1 Started 
+réseaux -> shop_front 
+$ curl http://adminer.localhost/ -> HTTP 200
+$ docker exec shop-adminer-1 php -r 'fsockopen("db",5432)' -> db:5432 injoignable (php_network_getaddresses: getaddrinfo failed: Name or service not known)
+ Container shop-adminer-1 Healthy 

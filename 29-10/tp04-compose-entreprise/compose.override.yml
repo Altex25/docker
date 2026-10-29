@@ -1,0 +1,30 @@
+services:
+  traefik:
+    environment:
+      TRAEFIK_API_DASHBOARD: "true"
+      TRAEFIK_API_INSECURE: "true"
+      TRAEFIK_LOG_LEVEL: DEBUG
+    ports:
+      - "127.0.0.1:8080:8080"
+
+  api:
+    command: ["node", "--watch", "src/server.js"]
+    environment:
+      LOG_LEVEL: debug
+    volumes:
+      - ./apps/shopapi/src:/app/src:ro
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  worker:
+    environment:
+      LOG_LEVEL: DEBUG
+
+  db:
+    networks:
+      - debug
+    ports:
+      - "127.0.0.1:${DB_DEBUG_PORT:-5432}:5432"
+
+networks:
+  debug: {}

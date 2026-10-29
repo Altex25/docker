@@ -1,0 +1,16 @@
+$ docker inspect shop-api-1 --format "{{json .Config.Cmd}}"
+["node","--watch","src/server.js"]
+$ curl http://api.localhost/ready  -> {"status":"ready","checks":{"db":"ok","redis":"ok"}}
+
+# 1. Modification depuis le Mac (éditeur) : aucun rechargement (Colima mountInotify: false)
+$ docker compose logs api --since <modification> | grep -c Restarting -> 0
+
+# 2. Même modification faite depuis la VM Linux (équivalent d un poste Linux ou de mountInotify: true)
+$ docker compose logs api --since <modification> --no-log-prefix
+Restarting 'src/server.js'
+{"level":30,"time":1793265468126,"pid":48,"hostname":"09d7e54f801b","signal":"SIGTERM","msg":"arrêt demandé"}
+{"level":30,"time":1793265468270,"pid":71,"hostname":"09d7e54f801b","reload":true,"msg":"code rechargé à chaud"}
+{"level":30,"time":1793265468275,"pid":71,"hostname":"09d7e54f801b","port":"3000","msg":"shopapi démarré"}
+$ docker inspect shop-api-1 --format '{{.RestartCount}}'   (conteneur non redémarré : seul le processus node est relancé)
+0
+$ curl http://api.localhost/ready  -> {"status":"ready","checks":{"db":"ok","redis":"ok"}}

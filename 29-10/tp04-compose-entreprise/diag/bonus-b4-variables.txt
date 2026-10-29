@@ -1,0 +1,16 @@
+$ REGISTRY= docker compose -f compose.yml -f compose.prod.yml config
+(exit=1)
+error while interpolating services.api.image: required variable REGISTRY is missing a value: REGISTRY doit être défini
+
+$ VERSION= docker compose -f compose.yml -f compose.prod.yml up -d
+(exit=1)
+error while interpolating services.api.image: required variable VERSION is missing a value: VERSION doit être défini
+
+$ mv .env .env.bak && docker compose -f compose.yml -f compose.prod.yml config   (pas de .env sur le serveur)
+(exit=1)
+error while interpolating services.api.image: required variable REGISTRY is missing a value: REGISTRY doit être défini
+$ docker compose config   (dev : non concerné)
+(exit=0)
+
+$ docker compose ps --format '{{.Name}}' | wc -l   (stack dev intacte)
+6

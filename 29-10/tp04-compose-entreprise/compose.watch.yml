@@ -1,0 +1,21 @@
+services:
+  api:
+    volumes: !reset []
+    develop:
+      watch:
+        - action: sync
+          path: ./apps/shopapi/src
+          target: /app/src
+        - action: rebuild
+          path: ./apps/shopapi/package.json
+        - action: rebuild
+          path: ./apps/shopapi/package-lock.json
+
+  worker:
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./apps/shop-worker/worker
+          target: /app/worker
+        - action: rebuild
+          path: ./apps/shop-worker/requirements.txt

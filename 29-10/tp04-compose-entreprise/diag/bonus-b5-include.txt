@@ -1,0 +1,53 @@
+$ docker compose -f b5-include/compose.yml config --services
+traefik
+db
+redis
+api
+$ docker compose -f b5-include/compose.yml config --networks ; --volumes
+back front
+pgdata redisdata
+$ docker compose -f b5-include/compose.yml config --format json | jq '.services.db.volumes[1].source'   (chemin relatif résolu depuis data/)
+./db/init.sql
+
+$ docker compose -f b5-include/conflict.yml config   (le fichier inclut data/ puis redéfinit db avec postgres:17-alpine)
+(exit=0, aucun avertissement)
+$ docker compose -f b5-include/conflict.yml config --format json | jq '.services.db | {image, env, secrets, healthcheck, volumes}'
+{"image":"postgres:17-alpine","env":{"POSTGRES_DB":"shop","POSTGRES_PASSWORD_FILE":"/run/secrets/db_password","POSTGRES_USER":"shop"},"secrets":["db_password"],"healthcheck":true,"volumes":["/var/lib/postgresql/data","/docker-entrypoint-initdb.d/001-init.sql"]}
+
+# publish : la stack en artefact OCI
+$ docker compose -f compose.yml -f compose.prod.yml publish --dry-run --resolve-image-digests registry.local:5000/shop-stack:1.0.0
+ redis Skipped 
+ api Skipped 
+ adminer Skipped 
+ migrate Skipped 
+ worker Skipped 
+ traefik Skipped 
+ db Skipped 
+ registry.local:5000/shop-stack:1.0.0 publishing 
+ registry.local:5000/shop-stack:1.0.0 published 
+(exit=0)
+
+
+# publish exige HTTPS : localhost:5050 (HTTP) est refusé ("server gave HTTP response to HTTPS client"),
+# et le Mac ne joint pas registry.local:5000. Compose est donc lancé depuis un conteneur docker:cli dans la VM.
+$ docker compose -f compose.yml -f compose.prod.yml publish --resolve-image-digests -y registry.local:5000/shop-stack:1.0.0
+ registry.local:5000/shop-stack:1.0.0 publishing 
+ registry.local:5000/shop-stack:1.0.0 published 
+(exit=0)
+
+$ crane manifest registry.local:5000/shop-stack:1.0.0 | jq "{artifactType, layers}"
+{"artifactType":"application/vnd.docker.compose.project","config":"application/vnd.oci.empty.v1+json","layers":[{"mediaType":"application/vnd.docker.compose.file+yaml","title":"compose.yml"},{"mediaType":"application/vnd.docker.compose.file+yaml","title":"compose.prod.yml"},{"mediaType":"application/vnd.docker.compose.file+yaml","title":"image-digests.yaml"}]}
+
+# Consommation depuis un dossier vide (aucun fichier local)
+$ cd /tmp/vide && docker compose -f oci://registry.local:5000/shop-stack:1.0.0 config --services
+error while interpolating services.api.image: required variable REGISTRY is missing a value: REGISTRY doit être défini
+(le .env n'est pas publié sans --with-env : c'est au consommateur de fournir REGISTRY / VERSION)
+
+$ cd /tmp/vide && REGISTRY=registry.local:5000 VERSION=1.4.3 WORKER_VERSION=1.0.0 docker compose -f oci://registry.local:5000/shop-stack:1.0.0 config
+services : db redis api traefik worker
+image api   : registry.local:5000/shopapi:1.4.3@sha256:e724fbb5406fdb5ee89a782cea7094f6971d9319bcf06adf2d2d6857f7302b3a
+init.sql    : "source": "/root/.cache/docker-compose/d35e2f7e18e1accaa93e20fcdad15d0e3025e41c2bf867256b893acb2e734b02/db/init.sql"
+secret      : "file": "/root/.cache/docker-compose/d35e2f7e18e1accaa93e20fcdad15d0e3025e41c2bf867256b893acb2e734b02/secrets/db_password.txt"
+$ ls /vide/secrets /vide/db 2>&1
+ls: /vide/secrets: No such file or directory
+ls: /vide/db: No such file or directory

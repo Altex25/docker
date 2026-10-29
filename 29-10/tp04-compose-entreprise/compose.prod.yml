@@ -1,0 +1,70 @@
+x-hardening: &hardening
+  read_only: true
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+
+services:
+  traefik:
+    <<: *hardening
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 128M
+
+  db:
+    <<: *hardening
+    user: "70:70"
+    tmpfs:
+      - /var/run/postgresql:uid=70,gid=70,mode=0775
+      - /tmp:uid=70,gid=70,mode=1777
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 512M
+
+  redis:
+    <<: *hardening
+    user: "999:1000"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+
+  api:
+    <<: *hardening
+    image: ${REGISTRY:?REGISTRY doit être défini}/shopapi:${VERSION:?VERSION doit être défini}
+    build: !reset null
+    tmpfs:
+      - /tmp
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+
+  worker:
+    <<: *hardening
+    image: ${REGISTRY:?REGISTRY doit être défini}/shop-worker:${WORKER_VERSION:?WORKER_VERSION doit être défini}
+    build: !reset null
+    tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+
+  migrate:
+    <<: *hardening
+    tmpfs:
+      - /tmp
+
+  adminer:
+    profiles: !override
+      - disabled-in-prod

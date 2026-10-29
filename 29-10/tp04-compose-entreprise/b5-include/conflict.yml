@@ -1,0 +1,8 @@
+name: shop-b5-conflict
+
+include:
+  - path: data/compose.yml
+
+services:
+  db:
+    image: postgres:17-alpine

@@ -1,0 +1,18 @@
+$ docker compose -f compose.yml -f compose.override.yml -f compose.tls.yml up -d --wait
+
+$ curl -sI http://api.localhost/ready
+HTTP/1.1 308 Permanent Redirect
+Location: https://api.localhost/ready
+$ curl -s --cacert tls/ca/rootCA.pem https://api.localhost/ready
+{"status":"ready","checks":{"db":"ok","redis":"ok"}}
+HTTP 200, TLS vérifié=0 (0 = OK), HTTPS
+$ curl -sL --cacert tls/ca/rootCA.pem http://api.localhost/products | jq length   (redirection suivie)
+3
+$ curl -s https://api.localhost/ready   (sans la CA : le certificat n est pas reconnu par le système)
+exit curl 60
+$ openssl s_client -connect 127.0.0.1:443 -servername api.localhost | openssl x509 -noout -subject -issuer
+subject= /O=Shop SAS dev/CN=api.localhost
+issuer= /O=Shop SAS dev/CN=Shop SAS dev CA
+$ openssl s_client -tls1_1 -connect 127.0.0.1:443 -servername api.localhost   (TLS 1.1 refusé : minVersion TLS 1.2)
+alert protocol version
+alert number 70
