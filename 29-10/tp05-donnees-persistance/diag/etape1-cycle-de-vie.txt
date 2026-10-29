@@ -1,0 +1,36 @@
+$ docker compose -p shop-copy -f ../tp04-compose-entreprise/compose.yml up -d --wait db
+ Container shop-copy-db-1 Healthy 
+volume shop-copy_pgdata : présent
+
+# docker compose down
+ Network shop-copy_back Removed 
+ Network shop-copy_back Removing 
+volume shop-copy_pgdata : présent
+marqueur : écrit avant les tests
+
+# docker compose rm (conteneur arrêté puis supprimé)
+ Container shop-copy-db-1 Removed 
+volume shop-copy_pgdata : présent
+marqueur : écrit avant les tests
+
+# docker compose rm -v
+ Container shop-copy-db-1 Removed 
+volume shop-copy_pgdata : présent
+marqueur : écrit avant les tests
+
+# docker volume prune --filter label=com.docker.compose.project=shop-copy   (défaut depuis Docker 23 : volumes anonymes seulement)
+Total reclaimed space: 0B
+volume shop-copy_pgdata : présent
+marqueur : écrit avant les tests
+
+# docker volume prune -a --filter label=com.docker.compose.project=shop-copy   (-a : aussi les volumes nommés inutilisés)
+Deleted Volumes:
+shop-copy_pgdata
+Total reclaimed space: 47.99MB
+volume shop-copy_pgdata : ABSENT
+marqueur : perdu (table absente)
+
+# docker compose down -v
+ Volume shop-copy_pgdata Removed 
+ Volume shop-copy_pgdata Removing 
+volume shop-copy_pgdata : ABSENT

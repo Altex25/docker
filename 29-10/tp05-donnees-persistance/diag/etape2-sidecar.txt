@@ -1,0 +1,25 @@
+$ BACKUP_SCHEDULE="@every 1m" docker compose -f compose.yml -f compose.override.yml -f compose.backup.yml up -d --wait backup
+ Container shop-backup-1 Healthy 
+$ docker compose ps backup -> Up 5 minutes (healthy)
+$ (après 75 s) docker compose logs backup
+2026/10/29 10:32:47 213: Point latest daily backup to this last backup...
+2026/10/29 10:32:47 213: '/backups/daily/shop-latest.dump' -> 'shop-20261029.dump'
+2026/10/29 10:32:47 213: Point latest weekly backup to this last backup...
+2026/10/29 10:32:47 213: '/backups/weekly/shop-latest.dump' -> 'shop-202644.dump'
+2026/10/29 10:32:47 213: Point latest monthly backup to this last backup...
+2026/10/29 10:32:47 213: '/backups/monthly/shop-latest.dump' -> 'shop-202610.dump'
+2026/10/29 10:32:47 213: Cleaning older files for shop database from db...
+2026/10/29 10:32:47 213: SQL backup created successfully
+$ find backups -type f | sort
+backups/daily/shop-20261029.dump
+backups/last/shop-20261029-102747.dump
+backups/last/shop-20261029-102847.dump
+backups/last/shop-20261029-102947.dump
+backups/last/shop-20261029-103047.dump
+backups/last/shop-20261029-103147.dump
+backups/last/shop-20261029-103247.dump
+backups/monthly/shop-202610.dump
+backups/weekly/shop-202644.dump
+
+$ docker compose exec -T db pg_restore --list < backups/last/shop-20261029-103247.dump | grep -c 'TABLE DATA'
+3

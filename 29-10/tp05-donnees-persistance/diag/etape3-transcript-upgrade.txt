@@ -1,0 +1,60 @@
+$ ./upgrade-pg.sh
+
+== 1. État initial
+version         : 14.13
+empreinte avant : 500 produits, 100000 commandes, md5 b6f351eae21b13e4cc1a773b8991bb2c
+
+== 2. Sauvegardes (début de l'indisponibilité : plus aucune écriture ne doit arriver)
+pg14-dumpall-20261029T103746Z.sql : 4.9M
+pg14-globals-20261029T103746Z.sql : 4.0K
+pg14-shop-20261029T103746Z.dump : 1.5M
+
+== 3. Arrêt de PostgreSQL 14 (shopdata_pgdata conservé)
+ Container shopdata-db-1 Stopped 
+
+== 4. PostgreSQL 16 sur le nouveau volume shopdata_pgdata16
+ Container shopdata-db-1 Healthy 
+version : 16.4
+
+== 5. Restauration
+empreinte après : 500 produits, 100000 commandes, md5 b6f351eae21b13e4cc1a773b8991bb2c
+
+== 6. Verdict
+indisponibilité : 7 s
+OK : données identiques, PostgreSQL 16.4 en service sur shopdata_pgdata16
+shopdata_pgdata est conservé pour un retour arrière ; le supprimer seulement après validation.
+retour arrière :
+  docker compose -f starter/compose.yml -f compose.noports.yml -f compose.pg16.yml stop db
+  docker compose -f starter/compose.yml -f compose.noports.yml up -d --wait db
+  (le volume shopdata_pgdata n'a pas été modifié)
+(exit=0)
+# Test du retour arrière
+$ docker compose -f starter/compose.yml -f compose.noports.yml -f compose.pg16.yml stop db 2>&1 | tail -1
+ Container shopdata-db-1 Stopped 
+
+$ docker compose -f starter/compose.yml -f compose.noports.yml up -d --wait db 2>&1 | tail -1
+ Container shopdata-db-1 Healthy 
+
+$ docker compose -f starter/compose.yml -f compose.noports.yml exec -T db psql -U shop -d shop -tAc "SELECT version()" | cut -c1-16
+PostgreSQL 14.13
+
+$ docker compose -f starter/compose.yml -f compose.noports.yml exec -T db psql -U shop -d shop -tAc "$CK"
+100000 b6f351eae21b13e4cc1a773b8991bb2c
+
+# Retour sur PostgreSQL 16
+$ docker compose -f starter/compose.yml -f compose.noports.yml stop db 2>&1 | tail -1
+ Container shopdata-db-1 Stopped 
+
+$ docker compose -f starter/compose.yml -f compose.noports.yml -f compose.pg16.yml up -d --wait db 2>&1 | tail -1
+ Container shopdata-db-1 Healthy 
+
+$ docker compose -f starter/compose.yml -f compose.noports.yml -f compose.pg16.yml exec -T db psql -U shop -d shop -tAc "SELECT version()" | cut -c1-16
+PostgreSQL 16.4 
+
+$ docker compose -f starter/compose.yml -f compose.noports.yml -f compose.pg16.yml exec -T db psql -U shop -d shop -tAc "$CK"
+100000 b6f351eae21b13e4cc1a773b8991bb2c
+
+$ docker volume ls --filter label=com.docker.compose.project=shopdata --format "{{.Name}}"
+shopdata_pgdata
+shopdata_pgdata16
+

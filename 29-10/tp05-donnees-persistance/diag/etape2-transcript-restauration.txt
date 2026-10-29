@@ -1,0 +1,76 @@
+$ docker compose up -d --wait db 2>&1 | tail -1
+ Container shop-copy-db-1 Healthy 
+
+$ bash starter/seed.sh
+CREATE TABLE
+NOTICE:  relation "products" already exists, skipping
+NOTICE:  relation "orders" already exists, skipping
+CREATE TABLE
+INSERT 0 500
+INSERT 0 100000
+ orders |             checksum             
+--------+----------------------------------
+ 100000 | 609135be0f9e38254aacdc7cf2e75395
+(1 row)
+
+
+$ RAW=1 ./backup.sh
+== Sauvegarde shop-copy/db (shop) : 20261029T102537Z
+empreinte (commandes md5) : 100000 609135be0f9e38254aacdc7cf2e75395
+dump logique  : /Users/alexandre/Desktop/Ynov/M2/Docker/docker/29-10/tp05-donnees-persistance/backups/shop-copy-shop-20261029T102537Z.dump (1.5M, 3 tables)
+rôles         : /Users/alexandre/Desktop/Ynov/M2/Docker/docker/29-10/tp05-donnees-persistance/backups/shop-copy-globals-20261029T102537Z.sql
+copie brute   : /Users/alexandre/Desktop/Ynov/M2/Docker/docker/29-10/tp05-donnees-persistance/backups/shop-copy-pgdata-20261029T102537Z.tar.gz ( 16M, base arrêtée 3 s)
+== OK (1 dump(s) conservé(s), maximum 7)
+
+$ docker compose down -v 2>&1 | grep -E "Volume .* Removed"
+ Volume shop-copy_pgdata Removed 
+
+$ docker volume ls -q --filter label=com.docker.compose.project=shop-copy | wc -l
+       0
+
+$ docker compose up -d --wait db 2>&1 | tail -1
+ Container shop-copy-db-1 Healthy 
+
+$ docker compose exec -T db psql -U shop -d shop -tAc "select count(*) from orders"
+0
+
+$ ./restore.sh backups/shop-copy-shop-20261029T102537Z.dump
+sha256 vérifié : shop-copy-shop-20261029T102537Z.dump
+restauration logique en 0 s
+empreinte (commandes md5) : 100000 609135be0f9e38254aacdc7cf2e75395
+
+$ docker compose exec -T db psql -U shop -d shop -tAc "$CK"
+100000 609135be0f9e38254aacdc7cf2e75395
+
+# Restauration depuis la copie brute du volume
+$ docker compose down -v 2>&1 | grep -E "Volume .* Removed"
+ Volume shop-copy_pgdata Removed 
+
+$ ./restore.sh backups/shop-copy-pgdata-20261029T102537Z.tar.gz
+sha256 vérifié : shop-copy-pgdata-20261029T102537Z.tar.gz
+volume shop-copy_pgdata recréé depuis shop-copy-pgdata-20261029T102537Z.tar.gz : relancer la base (docker compose up -d --wait db)
+
+$ docker compose up -d --wait db 2>&1 | tail -1
+ Container shop-copy-db-1 Healthy 
+
+$ docker compose logs db --no-log-prefix | grep -E "Skipping initialization|ready to accept" | tail -2
+PostgreSQL Database directory appears to contain a database; Skipping initialization
+2026-10-29 10:25:54.697 UTC [1] LOG:  database system is ready to accept connections
+
+$ docker compose exec -T db psql -U shop -d shop -tAc "$CK"
+100000 609135be0f9e38254aacdc7cf2e75395
+
+# Rétention (KEEP=3, 4 sauvegardes supplémentaires)
+== OK (2 dump(s) conservé(s), maximum 3)
+== OK (3 dump(s) conservé(s), maximum 3)
+rétention : shop-copy-shop-20261029T102537Z.dump supprimé
+rétention : shop-copy-globals-20261029T102537Z.sql supprimé
+== OK (3 dump(s) conservé(s), maximum 3)
+rétention : shop-copy-shop-20261029T102557Z.dump supprimé
+rétention : shop-copy-globals-20261029T102557Z.sql supprimé
+== OK (3 dump(s) conservé(s), maximum 3)
+$ ls -1 backups | grep shop-copy-shop- | grep -v sha256
+shop-copy-shop-20261029T102558Z.dump
+shop-copy-shop-20261029T102600Z.dump
+shop-copy-shop-20261029T102601Z.dump
+

@@ -3,3 +3,4 @@ secrets/
 apps/shop-worker/pip.conf
 tls/ca/
 tls/certs/
+backups/

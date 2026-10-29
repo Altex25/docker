@@ -1,0 +1,36 @@
+$ docker inspect $(docker compose ps -q db) --format '{{json .Mounts}}' | jq
+{"Type":"volume","Name":"shop_pgdata","Source":"/var/lib/docker/volumes/shop_pgdata/_data","Destination":"/var/lib/postgresql/data","RW":true}
+{"Type":"bind","Name":null,"Source":"/Users/alexandre/Desktop/Ynov/M2/Docker/docker/29-10/tp04-compose-entreprise/db/init.sql","Destination":"/docker-entrypoint-initdb.d/001-init.sql","RW":false}
+{"Type":"bind","Name":null,"Source":"/Users/alexandre/Desktop/Ynov/M2/Docker/docker/29-10/tp04-compose-entreprise/secrets/db_password.txt","Destination":"/run/secrets/db_password","RW":false}
+
+$ docker volume inspect shop_pgdata
+{"Name":"shop_pgdata","Driver":"local","Mountpoint":"/var/lib/docker/volumes/shop_pgdata/_data","Labels":{"com.docker.compose.config-hash":"2e6965aae4be884527a3afdfd8a79c1df6e053b87c8af8d38f5a222324c8c722","com.docker.compose.project":"shop","com.docker.compose.version":"5.1.4","com.docker.compose.volume":"pgdata"}}
+
+$ docker system df -v (volumes)
+VOLUME NAME                                                                                LINKS     SIZE
+shop-registry_registry-data                                                                1         178.6MB
+shop-registry_mirror-data                                                                  1         577.3MB
+shop_pgdata                                                                                1         48.31MB
+shop-scan_trivy-db                                                                         1         1.645GB
+shop_redisdata                                                                             1         2.339kB
+
+# Couche inscriptible du conteneur vs volume
+$ docker exec db touch /tmp/x && docker diff db
+C /tmp
+A /tmp/x
+C /run
+C /run/postgresql
+A /run/postgresql/.s.PGSQL.5432
+A /run/postgresql/.s.PGSQL.5432.lock
+A /run/secrets
+A /run/secrets/db_password
+C /docker-entrypoint-initdb.d
+A /docker-entrypoint-initdb.d/001-init.sql
+$ docker exec db sh -c 'ls /var/lib/postgresql/data | head -3' ; pourtant docker diff ne montre rien sous /var/lib/postgresql/data (c'est le volume)
+PG_VERSION base global
+$ docker inspect db --format '{{.Driver}} {{json .Storage}}'   (Docker 29 + containerd : GraphDriver remplacé par Storage)
+overlayfs {"RootFS":{"Snapshot":{"Name":"overlayfs"}}}
+$ colima ssh -- sudo ls /var/lib/docker/volumes/shop_pgdata/_data | head -4
+PG_VERSION base global pg_commit_ts
+$ colima ssh -- sudo find / -xdev -path '*snapshots*' -name x -newer /etc/hostname 2>/dev/null | grep '/fs/tmp/x$'   (la couche inscriptible est un snapshot containerd)
+/var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/4792/fs/tmp/x

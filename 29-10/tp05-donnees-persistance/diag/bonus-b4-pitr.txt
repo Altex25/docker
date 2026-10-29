@@ -1,0 +1,19 @@
+$ bonus/b4-pitr.sh
+== 1. PostgreSQL 16 avec archivage des WAL dans le volume tp05-pitr-wal
+archive_mode=on archive_command=test ! -f /archive/%f && cp %p /archive/%f
+== 2. Données initiales puis sauvegarde de base (pg_basebackup)
+sauvegarde de base : backup_manifest base.tar.gz pg_wal.tar.gz ; état : 1000 commandes, total 49157.91
+== 3. Activité après la sauvegarde
+T (cible de restauration) = 2026-10-29 10:50:51.472525+00 ; état attendu : 1500 commandes, total 74269.03
+== 4. Incident : DELETE sans WHERE
+état après l'incident : 1 commandes, total 1.00
+WAL archivés : 5 ; dernier : 000000010000000000000004
+== 5. Restauration à T : base1 + rejeu des WAL archivés jusqu'à T
+LOG:  starting point-in-time recovery to 2026-10-29 10:50:51.472525+00
+LOG:  recovery stopping before commit of transaction 734, time 2026-10-29 10:50:53.6063+00
+LOG:  selected new timeline ID: 2
+LOG:  archive recovery complete
+état restauré : 1500 commandes, total 74269.03
+== 6. Verdict
+OK : état identique à T (1500 commandes, total 74269.03)
+(exit=0)

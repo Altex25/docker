@@ -1,0 +1,18 @@
+$ docker run -d --name tp05-anon1 postgres:16-alpine   (sans -v, sans mot de passe)
+état : exited (exit 1)
+Error: Database is uninitialized and superuser password is not specified.
+$ docker inspect tp05-anon1 --format '{{json .Mounts}}'
+volume name=f755f67e40853a686b68f2a91a93405c362094d91eee33c6ea42aabe64e1b052 -> /var/lib/postgresql/data
+
+$ docker run -d --name tp05-anon2 -e POSTGRES_PASSWORD=x postgres:16-alpine
+volume anonyme : f738ac00bbe5294a13bef08a691c689b0612886cdc9a802ba256ab1c5ea7cf7f -> /var/lib/docker/volumes/f738ac00bbe5294a13bef08a691c689b0612886cdc9a802ba256ab1c5ea7cf7f/_data
+$ docker image inspect postgres:16-alpine --format '{{json .Config.Volumes}}'   (l'image déclare VOLUME)
+{"/var/lib/postgresql/data":{}}
+
+$ docker rm -f tp05-anon2
+volume f738ac00bbe5294a13bef08a691c689b0612886cdc9a802ba256ab1c5ea7cf7f après docker rm : toujours là (orphelin, dangling)
+$ docker run --rm -v f738ac00bbe5294a13bef08a691c689b0612886cdc9a802ba256ab1c5ea7cf7f:/d alpine ls /d | head -3   (les données sont récupérables… si on retrouve l'identifiant)
+PG_VERSION base global
+
+$ docker run -d --name tp05-anon3 -e POSTGRES_PASSWORD=x postgres:16-alpine && docker rm -f -v tp05-anon3
+volume a38ff9503b5e86907e6329beabb78b797536d9166fbd8a9e23d7210463650898 après docker rm -v : supprimé

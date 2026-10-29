@@ -1,0 +1,26 @@
+$ bash starter/seed.sh 2>&1 | tail -3
+ 100000 | b6f351eae21b13e4cc1a773b8991bb2c
+(1 row)
+
+
+# Changement naïf du tag : postgres:16 sur le volume PostgreSQL 14
+$ docker compose -f starter/compose.yml -f compose.noports.yml -f compose.pg16-naive.yml up -d db 2>&1 | tail -1
+ Container shopdata-db-1 Started 
+
+$ docker compose -f starter/compose.yml -f compose.noports.yml -f compose.pg16-naive.yml ps -a db --format "{{.Image}} {{.State}} {{.Status}}"
+postgres:16.4-alpine@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c exited Exited (1) 6 seconds ago
+
+$ docker compose -f starter/compose.yml -f compose.noports.yml -f compose.pg16-naive.yml logs db --no-log-prefix 2>&1 | grep -E "FATAL|DETAIL" | tail -2
+2026-10-29 10:37:02.669 UTC [1] FATAL:  database files are incompatible with server
+2026-10-29 10:37:02.669 UTC [1] DETAIL:  The data directory was initialized by PostgreSQL version 14, which is not compatible with this version 16.4.
+
+$ docker run --rm -v shopdata_pgdata:/d:ro alpine:3.20 cat /d/PG_VERSION
+14
+
+# Retour au tag 14 : le volume n a pas été modifié
+$ docker compose up -d --wait db 2>&1 | tail -1
+ Container shopdata-db-1 Healthy 
+
+$ docker compose exec -T db psql -U shop -d shop -tAc "SELECT count(*) || chr(32) || md5(string_agg(id::text || status, chr(44) ORDER BY id)) FROM orders"
+100000 b6f351eae21b13e4cc1a773b8991bb2c
+

@@ -1,0 +1,15 @@
+# 1er démarrage (volume vide)
+$ docker compose logs db | grep -E "initdb.d|init.sql|ready to accept"
+/usr/local/bin/docker-entrypoint.sh: running /docker-entrypoint-initdb.d/001-init.sql
+PostgreSQL init process complete; ready for start up.
+produits : 3
+
+# docker compose restart db, puis down / up (volume conservé)
+$ docker compose logs db | grep -E "Skipping|initdb.d"
+PostgreSQL Database directory appears to contain a database; Skipping initialization
+produits : 2   (init.sql non rejoué : le produit 3 supprimé n'est pas revenu)
+$ docker compose exec db cat /var/lib/postgresql/data/PG_VERSION  -> 16   (fichier testé par docker-entrypoint.sh)
+
+# Forcer la réinitialisation : supprimer le volume (down -v) puis up
+produits : 3
+/usr/local/bin/docker-entrypoint.sh: running /docker-entrypoint-initdb.d/001-init.sql

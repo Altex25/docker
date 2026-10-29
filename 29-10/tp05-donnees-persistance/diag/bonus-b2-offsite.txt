@@ -1,0 +1,13 @@
+$ bonus/b2-offsite.sh backups/shop-copy-shop-20261029T102601Z.dump
+== Chiffrement de shop-copy-shop-20261029T102601Z.dump pour age1e6ls3edscfwkf9m5qexdmadt9ztegw7s7x446t5m7qvp4e3udgrq29gk02
+clair : 1.5M  chiffré : 2.0M  en-tête : age-encryption.org/v1
+== Envoi vers s3://pg-backups
+  1596880 shop-copy-shop-20261029T102601Z.dump.age
+== Vérification : téléchargement, déchiffrement, sha256
+sha256 original : c94c60cc52d378f59a1190a6bd9ac03d27fee52c3ad5097f9b7b8ef38d478e74
+sha256 restauré : c94c60cc52d378f59a1190a6bd9ac03d27fee52c3ad5097f9b7b8ef38d478e74
+== OK
+(exit=0)
+
+$ docker exec -i shop-db-1 pg_restore --list < backups/offsite/*.age   (le fichier chiffré est illisible sans la clé)
+pg_restore: error: input file does not appear to be a valid archive

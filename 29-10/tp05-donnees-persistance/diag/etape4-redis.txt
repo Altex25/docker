@@ -1,0 +1,12 @@
+1000 clés écrites, attente 2 s, puis docker kill -s KILL (aucun arrêt propre, donc pas de sauvegarde à l arrêt)
+redis-server --save 60 1 --appendonly no     écrites : 1000   après kill -9 + redémarrage :    0   fichiers : 
+redis-server --appendonly yes --appendfsync everysec --save  écrites : 1000   après kill -9 + redémarrage : 1000   fichiers : appendonly.aof.1.base.rdb,appendonly.aof.1.incr.aof,appendonly.aof.manifest
+redis-server --appendonly yes --appendfsync always --save  écrites : 1000   après kill -9 + redémarrage : 1000   fichiers : appendonly.aof.1.base.rdb,appendonly.aof.1.incr.aof,appendonly.aof.manifest
+
+# Contenu du Redis de la stack TP04
+$ docker exec shop-redis-1 redis-cli INFO keyspace
+(vide au repos : cache expiré au bout de 30 s, file vidée par le worker)
+$ curl /products ; POST /orders avec le worker arrêté ; redis-cli --scan, TYPE, TTL, MEMORY USAGE
+orders:queue : list, ttl=-1, taille=184 o
+products : string, ttl=30, taille=248 o
+$ docker exec shop-redis-1 redis-cli CONFIG GET appendonly -> yes ; save -> 3600 1 300 100 60 10000

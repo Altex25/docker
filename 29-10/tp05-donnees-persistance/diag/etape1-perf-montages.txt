@@ -1,0 +1,5 @@
+type de montage                   256 Mo + fsync (ms)  5000 petits fichiers (ms)   lecture (ms)
+bind mount (virtiofs, Mac)                        228                       1091            409
+volume nommé (disque de la VM)                   174                        113             43
+tmpfs (RAM)                                        48                         37             36
+couche du conteneur (overlayfs)                   221                        115             43

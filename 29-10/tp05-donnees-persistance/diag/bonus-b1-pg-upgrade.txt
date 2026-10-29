@@ -1,0 +1,38 @@
+$ bonus/b1-pg-upgrade.sh --copy
+== Copie de shopdata_pgdata vers tp05-upg-copy/14/data (la copie n'entre pas dans la mesure)
+taille : 74.2M
+== initdb PostgreSQL 16 (même superutilisateur, encodage et locale)
+initdb: warning: enabling "trust" authentication for local connections
+initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+== pg_upgrade --check
+Checking for contrib/isn with bigint-passing mismatch         ok
+*Clusters are compatible*
+== pg_upgrade --copy
+Copying old pg_xact to new server ok
+Copying old pg_multixact/offsets to new server ok
+Copying old pg_multixact/members to new server ok
+durée pg_upgrade --copy : 1673 ms (démarrage du conteneur compris)
+fichiers liés (nombre de liens > 1) : 0
+== Démarrage de postgres:16.4-alpine@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c sur le cluster mis à niveau
+version   : 16.4
+empreinte : 100000 commandes, md5 b6f351eae21b13e4cc1a773b8991bb2c
+
+$ bonus/b1-pg-upgrade.sh --link
+== Copie de shopdata_pgdata vers tp05-upg-link/14/data (la copie n'entre pas dans la mesure)
+taille : 74.2M
+== initdb PostgreSQL 16 (même superutilisateur, encodage et locale)
+initdb: warning: enabling "trust" authentication for local connections
+initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+== pg_upgrade --check
+Checking for contrib/isn with bigint-passing mismatch         ok
+*Clusters are compatible*
+== pg_upgrade --link
+Copying old pg_xact to new server ok
+Copying old pg_multixact/offsets to new server ok
+Copying old pg_multixact/members to new server ok
+durée pg_upgrade --link : 1550 ms (démarrage du conteneur compris)
+fichiers liés (nombre de liens > 1) : 17
+== Démarrage de postgres:16.4-alpine@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c sur le cluster mis à niveau
+version   : 16.4
+empreinte : 100000 commandes, md5 b6f351eae21b13e4cc1a773b8991bb2c
+

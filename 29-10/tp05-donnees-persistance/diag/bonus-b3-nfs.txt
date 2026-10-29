@@ -1,0 +1,9 @@
+$ bonus/b3-nfs.sh
+$ docker volume create --driver local --opt type=nfs --opt o=addr=172.27.0.2,rw,nfsvers=4 --opt device=:/ tp05-nfs-vol
+options : {"device":":/","o":"addr=172.27.0.2,rw,nfsvers=4","type":"nfs"}
+lu par le conteneur B : écrit par le conteneur A
+
+tp05-pg-local    tp05-local-vol   100000 lignes + CHECKPOINT :   212 ms   système de fichiers : ext4
+tp05-pg-nfs      tp05-nfs-vol     100000 lignes + CHECKPOINT :   236 ms   système de fichiers : nfs4
+
+fichiers PostgreSQL côté serveur NFS : PG_VERSION base global pg_commit_ts
