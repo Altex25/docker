@@ -1,0 +1,33 @@
+services:
+  api:
+    environment:
+      DATABASE_URL: postgres://shop:${POSTGRES_PASSWORD:?définir POSTGRES_PASSWORD dans .env}@database:5432/shop
+
+  db:
+    networks:
+      backend:
+        aliases: [database]
+
+  db-next:
+    profiles: [bascule]
+    image: postgres:16.4-alpine@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?définir POSTGRES_PASSWORD dans .env}
+      POSTGRES_DB: shop
+    volumes:
+      - pgdata-next:/var/lib/postgresql/data
+      - ../tp04-compose-entreprise/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+      start_interval: 1s
+
+volumes:
+  pgdata-next: {}

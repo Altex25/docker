@@ -1,0 +1,4 @@
+networks:
+  backend:
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "false"

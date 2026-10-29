@@ -1,0 +1,44 @@
+== 1. backend avec enable_icc=false (réseau recréé, donc --force-recreate)
+état : api=healthy db=healthy front=healthy redis=healthy
+
+$ docker network inspect incident_backend --format internal={{.Internal}} options={{json .Options}}
+internal=true options={"com.docker.network.bridge.enable_icc":"false"}
+[code retour 0]
+
+== 2. effets
+
+$ docker compose exec -T api getent hosts db
+172.26.0.3        db  db
+[code retour 0]
+
+$ docker compose exec -T api sh -c nc -z -w3 db 5432 && echo db:5432 joignable
+[code retour 1]
+
+$ docker compose exec -T api sh -c nc -z -w3 redis 6379 && echo redis:6379 joignable
+[code retour 1]
+
+$ docker compose exec -T front wget -q -T3 -O- http://api:3000/health
+{"status":"ok"}[code retour 0]
+
+/health via le port publié : HTTP 200 en 0.001491s
+/ready via le port publié  : HTTP 504 en 30.016321s
+/products                  : HTTP 504 en 30.015235s
+
+$ docker compose logs front | grep upstream
+2026/10/29 14:46:00 [error] 22#22: *3 upstream timed out (110: Operation timed out) while reading response header from upstream upstream: "http://172.27.0.3:3000/ready"
+2026/10/29 14:46:15 [error] 22#22: *3 upstream timed out (110: Operation timed out) while reading response header from upstream upstream: "http://172.27.0.2:3000/ready"
+
+== 3. règle posée par Docker dans la VM
+
+$ colima ssh -- sudo iptables -S DOCKER-FORWARD | grep br-a82bc50018db
+-A DOCKER-FORWARD -i br-a82bc50018db -o br-a82bc50018db -j DROP
+
+$ colima ssh -- sudo nft list ruleset | grep br-a82bc50018db
+		iifname "br-a82bc50018db" oifname "br-a82bc50018db" counter packets 140 bytes 8400 drop
+		ip saddr != 172.26.0.0/16 oifname "br-a82bc50018db" counter packets 0 bytes 0 drop
+		ip daddr != 172.26.0.0/16 iifname "br-a82bc50018db" counter packets 0 bytes 0 drop
+
+== 4. retour à la configuration nominale
+état : api=healthy db=healthy front=healthy redis=healthy
+options backend : {}
+/ready : {"status":"ready","checks":{"db":"ok","redis":"ok"}}

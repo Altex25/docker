@@ -1,0 +1,12 @@
+Docker Compose version v5.1.4
+1. réseau back internal=false, DNSNames de db : ["tp06-alias-db-1","db","8982a832c73a"]
+2. compose.yml modifié : back passe en internal: true, puis docker compose up -d
+    Container tp06-alias-db-1 Stopping 
+    Container tp06-alias-db-1 Stopped 
+    Network tp06-alias_back Removed 
+    Network tp06-alias_back Creating 
+    Network tp06-alias_back Created 
+    Container tp06-alias-db-1 Starting 
+    Container tp06-alias-db-1 Started 
+3. DNSNames de db : ["tp06-alias-db-1","8982a832c73a"]   <- l'alias de service "db" a disparu
+4. après --force-recreate : ["tp06-alias-db-1","db","4fa9eb207284"]

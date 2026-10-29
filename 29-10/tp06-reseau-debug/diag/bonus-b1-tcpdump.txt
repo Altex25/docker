@@ -1,0 +1,24 @@
+$ docker run --network container:incident-api-1 nicolaka/netshoot tcpdump -i any -nn -A -s0 'tcp port 5432'
+pool pg inactif depuis plus de 10 s : la prochaine requête ouvre une nouvelle connexion
+$ docker exec incident-api-1 wget -qO- http://127.0.0.1:3000/products
+[{"id":1,"name":"Clavier mécanique","price":"89.90","stock":12},{"id":2,"name":"Écran 27\"","price":"249.00","stock":4},{"id":3,"name":"Souris sans fil","price":"29.50","stock":40}]
+
+== Paquets capturés : 14
+
+== Démarrage de session (en clair) : utilisateur et base
+user.shop.database.shop
+mécanisme d'authentification : SCRAM-SHA-256
+
+== Requête SQL en clair (extrait brut de tcpdump)
+14:39:18.198588 eth0  Out IP 172.26.0.4.40708 > 172.26.0.2.5432: Flags [P.], seq 220:281, ack 576, win 501, options [nop,nop,TS val 1193318245 ecr 1520558518], 
+E..q[.@.@..............8F"0.........X......
+G .eZ...Q...<SELECT id, name, price, stock FROM products ORDER BY id.
+
+== Réponse en clair (lignes de la table products)
+Clavier m
+cran 27"
+Souris sans fil
+
+== Chiffrement côté serveur
+ssl = off
+connexions SSL actives : 0 / 2

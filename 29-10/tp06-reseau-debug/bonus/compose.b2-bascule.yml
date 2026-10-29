@@ -1,0 +1,10 @@
+services:
+  db:
+    networks:
+      backend:
+        aliases: !reset []
+
+  db-next:
+    networks:
+      backend:
+        aliases: [database]

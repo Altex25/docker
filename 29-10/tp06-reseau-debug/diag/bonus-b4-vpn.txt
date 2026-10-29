@@ -1,0 +1,42 @@
+== Contexte : bridges déjà présents dans la VM Colima
+172.17.0.0/16 172.18.0.0/16 172.19.0.0/16 172.20.0.0/16 172.21.0.0/16 172.22.0.0/16 172.23.0.0/16 172.24.0.0/16 172.25.0.0/16 172.26.0.0/16 172.27.0.0/16
+
+== A. Pools par défaut : réseaux créés avant la connexion du VPN
+docker0 : 172.18.0.0/16
+réseau app1 : 172.19.0.0/16
+réseau app2 : 172.20.0.0/16
+ip route get 172.18.5.10 -> 172.18.5.10 dev docker0  src 172.18.0.1 
+VPN connecté : route 172.16.0.0/12 via vpn0 (serveur intranet 172.18.5.10)
+ip route get 172.18.5.10 -> 172.18.5.10 dev docker0  src 172.18.0.1 
+=> 172.18.0.0/16 (docker0) est plus spécifique que le /12 du VPN : le trafic vers l'intranet reste dans le bridge local
+10.8.0.0/24 dev vpn0 scope link  src 10.8.0.2 
+172.16.0.0/12 dev vpn0 scope link 
+172.18.0.0/16 dev docker0 scope link  src 172.18.0.1 
+172.19.0.0/16 dev br-5914ee76bb89 scope link  src 172.19.0.1 
+172.20.0.0/16 dev br-5e8ca175f9a1 scope link  src 172.20.0.1 
+
+== A'. Même daemon, VPN déjà connecté : création d'un nouveau réseau
+réseau app3 : 192.168.16.0/20
+ip route get 172.18.5.10 -> 172.18.5.10 dev docker0  src 172.18.0.1 
+
+== B. daemon.json : bip + default-address-pools hors des plages du VPN
+{
+  "bip": "10.200.0.1/24",
+  "default-address-pools": [
+    { "base": "10.201.0.0/16", "size": 24 }
+  ]
+}
+docker0 : 10.200.0.0/24
+réseau app1 : 10.201.0.0/24
+réseau app2 : 10.201.1.0/24
+réseau app3 : 10.201.2.0/24
+VPN connecté : route 172.16.0.0/12 via vpn0 (serveur intranet 172.18.5.10)
+ip route get 172.18.5.10 -> 172.18.5.10 dev vpn0  src 10.8.0.2 
+10.8.0.0/24 dev vpn0 scope link  src 10.8.0.2 
+10.200.0.0/24 dev docker0 scope link  src 10.200.0.1 
+10.201.0.0/24 dev br-ec5de77c6521 scope link  src 10.201.0.1 
+10.201.1.0/24 dev br-9b0db38d1172 scope link  src 10.201.1.1 
+10.201.2.0/24 dev br-1a783975614b scope link  src 10.201.2.1 
+172.16.0.0/12 dev vpn0 scope link 
+
+== conteneur tp06-dind supprimé

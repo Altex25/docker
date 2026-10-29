@@ -1,0 +1,99 @@
+name: incident
+
+x-restart: &restart
+  restart: unless-stopped
+
+services:
+  front:
+    <<: *restart
+    image: nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
+    ports:
+      - "8081:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d:ro
+    networks:
+      - public
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+      start_interval: 1s
+
+  api:
+    <<: *restart
+    build: ../tp04-compose-entreprise/apps/shopapi
+    image: incident/shopapi:local
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://shop:${POSTGRES_PASSWORD:?définir POSTGRES_PASSWORD dans .env}@db:5432/shop
+      REDIS_URL: redis://:${REDIS_PASSWORD:?définir REDIS_PASSWORD dans .env}@redis:6379
+    networks:
+      - public
+      - backend
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 2
+
+  db:
+    <<: *restart
+    image: postgres:16.4-alpine@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c
+    environment:
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?définir POSTGRES_PASSWORD dans .env}
+      POSTGRES_DB: shop
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../tp04-compose-entreprise/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+      start_interval: 1s
+
+  redis:
+    <<: *restart
+    image: redis:7.4-alpine@sha256:8da19c7399dca900c6822a1cf30f9d2285585e2c4b457ff4095b0f4500054d3f
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?définir REDIS_PASSWORD dans .env}
+    command:
+      - sh
+      - -c
+      - |
+        exec redis-server - <<EOF
+        requirepass $$REDIS_PASSWORD
+        appendonly yes
+        EOF
+    volumes:
+      - redisdata:/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+      start_interval: 1s
+
+networks:
+  public: {}
+  backend:
+    internal: true
+
+volumes:
+  pgdata: {}
+  redisdata: {}

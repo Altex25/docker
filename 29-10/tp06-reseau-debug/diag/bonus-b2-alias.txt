@@ -1,0 +1,27 @@
+== 1. alias database sur db, l'API pointe sur database
+DATABASE_URL de l'API : postgres://shop:***@database:5432/shop
+DNSNames de db        : ["incident-db-1","db","database","31cef086ff2d"]
+database -> 172.26.0.2   (db = 172.26.0.2)
+catalogue : Clavier mécanique, Écran 27", Souris sans fil
+
+== 2. nouvelle base db-next préparée à côté (sans alias)
+db-next = 172.26.0.6, database -> 172.26.0.2
+catalogue : Clavier mécanique, Écran 27", Souris sans fil
+
+== 3. bascule : l'alias database passe de db à db-next (aucune modification de l'API)
+ Container incident-db-1 Recreate 
+ Container incident-db-1 Recreated 
+ Container incident-db-next-1 Recreate 
+ Container incident-db-next-1 Recreated 
+bascule en 2 s
+conteneurs api avant : db7c5ef1665e e9b7a23b0896 / après : db7c5ef1665e e9b7a23b0896
+DATABASE_URL inchangée
+DNSNames db      : ["incident-db-1","db","90fd503be609"]
+DNSNames db-next : ["incident-db-next-1","db-next","database","c48cddf72e53"]
+database -> 172.26.0.5   (db-next = 172.26.0.5)
+catalogue : Clavier mécanique [db-next], Écran 27" [db-next], Souris sans fil [db-next]
+{"status":"ready","checks":{"db":"ok","redis":"ok"}}
+
+== 4. retour à la configuration nominale
+conteneurs : incident-api-1=healthy incident-api-2=healthy incident-db-1=healthy incident-front-1=healthy incident-redis-1=healthy
+catalogue : Clavier mécanique, Écran 27", Souris sans fil

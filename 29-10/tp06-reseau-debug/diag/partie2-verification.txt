@@ -1,0 +1,153 @@
+== Départ à zéro (projet incident uniquement)
+
+$ docker compose up -d --wait
+ Network incident_backend Creating 
+ Network incident_backend Created 
+ Network incident_public Creating 
+ Network incident_public Created 
+ Volume incident_redisdata Creating 
+ Volume incident_redisdata Created 
+ Volume incident_pgdata Creating 
+ Volume incident_pgdata Created 
+ Container incident-db-1 Creating 
+ Container incident-redis-1 Creating 
+ Container incident-redis-1 Created 
+ Container incident-db-1 Created 
+ Container incident-api-2 Creating 
+ Container incident-api-1 Creating 
+ Container incident-api-1 Created 
+ Container incident-api-2 Created 
+ Container incident-front-1 Creating 
+ Container incident-front-1 Created 
+ Container incident-db-1 Starting 
+ Container incident-redis-1 Starting 
+ Container incident-redis-1 Started 
+ Container incident-db-1 Started 
+ Container incident-redis-1 Waiting 
+ Container incident-db-1 Waiting 
+ Container incident-db-1 Healthy 
+ Container incident-redis-1 Healthy 
+ Container incident-api-1 Starting 
+ Container incident-api-1 Started 
+ Container incident-api-2 Starting 
+ Container incident-api-2 Started 
+ Container incident-api-1 Waiting 
+ Container incident-api-2 Waiting 
+ Container incident-api-1 Healthy 
+ Container incident-api-2 Healthy 
+ Container incident-front-1 Starting 
+ Container incident-front-1 Started 
+ Container incident-api-1 Waiting 
+ Container incident-api-2 Waiting 
+ Container incident-db-1 Waiting 
+ Container incident-redis-1 Waiting 
+ Container incident-front-1 Waiting 
+ Container incident-redis-1 Healthy 
+ Container incident-db-1 Healthy 
+ Container incident-api-1 Healthy 
+ Container incident-api-2 Healthy 
+ Container incident-front-1 Healthy 
+[code retour 0]
+stack saine en 5 s
+
+$ docker compose ps --format table {{.Name}}\t{{.Status}}\t{{.Ports}}
+NAME               STATUS                   PORTS
+incident-api-1     Up 3 seconds (healthy)   3000/tcp
+incident-api-2     Up 3 seconds (healthy)   3000/tcp
+incident-db-1      Up 4 seconds (healthy)   5432/tcp
+incident-front-1   Up 1 second (healthy)    0.0.0.0:8081->80/tcp, [::]:8081->80/tcp
+incident-redis-1   Up 4 seconds (healthy)   6379/tcp
+[code retour 0]
+
+== Objectif : catalogue puis X-Cache: HIT
+appel 1 : HTTP/1.1 200 OK X-Cache: MISS
+appel 2 : HTTP/1.1 200 OK X-Cache: HIT
+
+$ curl -s http://localhost:8081/products
+[{"id":1,"name":"Clavier mécanique","price":"89.90","stock":12},{"id":2,"name":"Écran 27\"","price":"249.00","stock":4},{"id":3,"name":"Souris sans fil","price":"29.50","stock":40}][code retour 0]
+
+$ curl -s http://localhost:8081/ready
+{"status":"ready","checks":{"db":"ok","redis":"ok"}}[code retour 0]
+
+== Changement d'IP de l'API : nginx re-résout api via 127.0.0.11 (valid=10s)
+IP api avant : 172.27.0.2 172.27.0.3 / après : 172.27.0.5 172.27.0.6 (anciennes IP prises par tp06-ipthief*)
+appel 1 : HTTP/1.1 200 OK X-Cache: HIT
+appel 2 : HTTP/1.1 200 OK X-Cache: HIT
+appel 3 : HTTP/1.1 200 OK X-Cache: HIT
+
+== Répartition sur les 2 réplicas
+
+$ docker compose exec front nslookup api 127.0.0.11
+Server:		127.0.0.11
+Address:	127.0.0.11:53
+
+Non-authoritative answer:
+
+Non-authoritative answer:
+Name:	api
+Address: 172.27.0.6
+Name:	api
+Address: 172.27.0.5
+
+[code retour 0]
+requêtes /products par réplica avant : 3 3 / après 20 appels : 16 10
+
+== Politique de redémarrage : crash simulé (kill -9 du processus node depuis la VM)
+
+$ colima ssh -- sudo kill -9 793922
+pendant le redémarrage : HTTP/1.1 200 OK X-Cache: HIT
+
+$ docker inspect cceb5517f2604e6756cb37028f0d0ea4cf6044e71e7ef45b2a63fc0cf5be82e6 --format {{.Name}} restart={{.HostConfig.RestartPolicy.Name}} RestartCount={{.RestartCount}} état={{.State.Status}} santé={{.State.Health.Status}}
+/incident-api-1 restart=unless-stopped RestartCount=1 état=running santé=healthy
+[code retour 0]
+
+== Isolation réseau
+
+$ docker network inspect incident_backend --format internal={{.Internal}} membres={{range .Containers}}{{.Name}} {{end}}
+internal=true membres=incident-api-1 incident-redis-1 incident-api-2 incident-db-1 
+[code retour 0]
+
+$ docker network inspect incident_public --format internal={{.Internal}} membres={{range .Containers}}{{.Name}} {{end}}
+internal=false membres=incident-api-1 incident-front-1 incident-api-2 
+[code retour 0]
+
+$ docker compose exec front getent hosts db
+[code retour 2]
+
+$ docker compose exec db sh -c wget -q -T3 -O /dev/null http://example.com
+wget: bad address 'example.com'
+[code retour 1]
+
+$ docker compose exec api sh -c nc -z -w2 db 5432 && echo api joint db:5432
+api joint db:5432
+[code retour 0]
+
+$ colima ssh -- ss -tln | grep 6379
+aucun port 6379 ouvert sur la VM
+
+== Secrets
+
+$ docker top de724fcfa049d7256ede04887cf459e19c39efec24318045c86b88da1721e42a -o pid,args
+PID                 COMMAND
+793094              redis-server *:6379
+[code retour 0]
+
+$ docker compose exec redis redis-cli ping
+NOAUTH Authentication required.
+
+[code retour 0]
+
+$ docker compose exec redis sh -c REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli ping
+PONG
+[code retour 0]
+
+$ git -C .. check-ignore -v tp06-reseau-debug/.env
+29-10/tp06-reseau-debug/.gitignore:1:.env	tp06-reseau-debug/.env
+[code retour 0]
+
+== Healthchecks
+/incident-api-1 healthy ["CMD","wget","-q","-O","/dev/null","http://127.0.0.1:3000/health"]
+/incident-api-2 healthy ["CMD","wget","-q","-O","/dev/null","http://127.0.0.1:3000/health"]
+/incident-db-1 healthy ["CMD-SHELL","pg_isready -h 127.0.0.1 -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+/incident-front-1 healthy ["CMD","wget","-q","-O","/dev/null","http://127.0.0.1/health"]
+/incident-redis-1 healthy ["CMD-SHELL","REDISCLI_AUTH=\"$REDIS_PASSWORD\" redis-cli ping | grep -q PONG"]
