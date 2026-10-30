@@ -1,0 +1,318 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  HADOLINT_IMAGE: hadolint/hadolint:v2.15.1@sha256:32dac94127fd60b7b7e3fbfc65e1383b9b5e25c9bfd7b8536de7a539fe68a12d
+  TRIVY_IMAGE: aquasec/trivy:0.69.1
+  PUBLISH: ${{ github.event_name == 'push' }}
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: hadolint
+        run: |
+          for f in apps/*/Dockerfile; do
+            echo "== $f"
+            docker run --rm -i "$HADOLINT_IMAGE" hadolint - < "$f"
+          done
+
+      - name: docker compose config
+        run: |
+          mkdir -p .ci/config/secrets
+          printf ci > .ci/config/secrets/db_password.txt
+          for files in "compose.yml" "compose.yml compose.override.yml" "compose.yml compose.prod.yml"; do
+            args=()
+            for f in $files; do args+=(-f "$f"); done
+            VERSION=sha-ci docker compose --project-directory .ci/config --env-file .env.example "${args[@]}" \
+              --profile tools --profile ops config -q
+            echo "OK $files"
+          done
+
+  build:
+    needs: lint
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [shopapi, shop-worker]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Préfixe d'image en minuscules
+        run: echo "IMAGE_PREFIX=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
+      - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
+
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+
+      - name: Connexion à GHCR
+        if: env.PUBLISH == 'true'
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tags et labels OCI
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/${{ matrix.app }}
+          flavor: latest=false
+          tags: |
+            type=ref,event=pr
+            type=sha,prefix=sha-,format=short,enable=${{ github.ref == 'refs/heads/main' }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
+          labels: |
+            org.opencontainers.image.title=${{ matrix.app }}
+            org.opencontainers.image.vendor=Shop SAS
+
+      - name: pip.conf (secret de build du worker)
+        if: matrix.app == 'shop-worker'
+        env:
+          PIP_CONF: ${{ secrets.PIP_CONF }}
+        run: |
+          if [ -n "$PIP_CONF" ]; then printf '%s\n' "$PIP_CONF" > "$RUNNER_TEMP/pip.conf"
+          else cp apps/shop-worker/pip.conf.example "$RUNNER_TEMP/pip.conf"; fi
+
+      - name: Tests (étape test)
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: apps/${{ matrix.app }}
+          target: test
+          outputs: type=cacheonly
+          cache-from: type=gha,scope=${{ matrix.app }}
+          secret-files: ${{ matrix.app == 'shop-worker' && format('pipconf={0}/pip.conf', runner.temp) || '' }}
+
+      - name: Build multi-arch
+        id: build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: apps/${{ matrix.app }}
+          target: runtime
+          platforms: linux/amd64,linux/arm64
+          push: ${{ env.PUBLISH == 'true' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          build-args: |
+            APP_VERSION=${{ steps.meta.outputs.version }}
+            GIT_SHA=${{ github.sha }}
+            SOURCE_URL=${{ github.server_url }}/${{ github.repository }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,scope=${{ matrix.app }},mode=max
+          secret-files: ${{ matrix.app == 'shop-worker' && format('pipconf={0}/pip.conf', runner.temp) || '' }}
+
+      - name: Digest publié
+        if: env.PUBLISH == 'true'
+        run: |
+          mkdir -p digests
+          echo "$IMAGE_PREFIX/${{ matrix.app }}@${{ steps.build.outputs.digest }}" > "digests/${{ matrix.app }}"
+          cat "digests/${{ matrix.app }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: env.PUBLISH == 'true'
+        with:
+          name: digest-${{ matrix.app }}
+          path: digests/${{ matrix.app }}
+          retention-days: 7
+
+  scan:
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [shopapi, shop-worker]
+    env:
+      OCI_DOCKER_CONFIG: /home/runner/.docker
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: digest-${{ matrix.app }}
+          path: digests
+
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trivy bloquant (amd64 et arm64)
+        run: |
+          ref=$(cat "digests/${{ matrix.app }}")
+          for p in linux/amd64 linux/arm64; do
+            echo "== $ref ($p)"
+            ci/oci.sh "$TRIVY_IMAGE" image -q --platform "$p" --scanners vuln --severity HIGH,CRITICAL \
+              --ignore-unfixed --exit-code 1 --format table "$ref"
+          done
+
+      - name: Porte de release (labels, non-root, HEALTHCHECK, secrets)
+        run: |
+          ref=$(cat "digests/${{ matrix.app }}")
+          docker pull -q "$ref"
+          ./release-gate.sh "$ref"
+
+  sign:
+    needs: scan
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: digest-*
+          merge-multiple: true
+          path: digests
+
+      - uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5
+        with:
+          cosign-release: v2.6.1
+
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Signature keyless (jeton OIDC GitHub, certificat Fulcio, journal Rekor)
+        run: |
+          for f in digests/*; do
+            cosign sign --yes "$(cat "$f")"
+          done
+
+  deploy-preprod:
+    needs: sign
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    environment:
+      name: preprod
+      url: ${{ vars.APP_URL }}
+    concurrency:
+      group: deploy-preprod
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Préfixe d'image en minuscules
+        run: echo "IMAGE_PREFIX=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
+      - uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5
+        with:
+          cosign-release: v2.6.1
+
+      - uses: imjasonh/setup-crane@31b88efe9de28ae0ffa220711af4b60be9435f6e
+
+      - name: Clé SSH et contexte Docker
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          docker context create preprod --docker "host=ssh://${{ vars.DEPLOY_SSH_TARGET }}"
+          docker --context preprod version --format 'serveur Docker {{.Server.Version}}'
+
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Vérification des signatures puis rolling update
+        env:
+          DOCKER_CONTEXT: preprod
+          REGISTRY: ${{ env.IMAGE_PREFIX }}
+          COSIGN_IDENTITY_REGEXP: ^${{ github.server_url }}/${{ github.repository }}/\.github/workflows/ci\.yml@refs/heads/main$
+        run: VERSION="sha-${GITHUB_SHA::7}" ./deploy/rolling-update.sh
+
+      - name: Smoke test
+        run: curl -fsS --retry 5 --retry-all-errors "${{ vars.APP_URL }}/ready"
+
+  deploy-prod:
+    needs: sign
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    environment:
+      name: production
+      url: ${{ vars.APP_URL }}
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Préfixe d'image en minuscules
+        run: echo "IMAGE_PREFIX=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
+      - uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5
+        with:
+          cosign-release: v2.6.1
+
+      - uses: imjasonh/setup-crane@31b88efe9de28ae0ffa220711af4b60be9435f6e
+
+      - name: Clé SSH et contexte Docker
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          docker context create prod --docker "host=ssh://${{ vars.DEPLOY_SSH_TARGET }}"
+          docker --context prod version --format 'serveur Docker {{.Server.Version}}'
+
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Vérification des signatures puis rolling update
+        env:
+          DOCKER_CONTEXT: prod
+          REGISTRY: ${{ env.IMAGE_PREFIX }}
+          COSIGN_IDENTITY_REGEXP: ^${{ github.server_url }}/${{ github.repository }}/\.github/workflows/ci\.yml@refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$
+        run: VERSION="${GITHUB_REF_NAME#v}" ./deploy/rolling-update.sh
+
+      - name: Smoke test
+        run: curl -fsS --retry 5 --retry-all-errors "${{ vars.APP_URL }}/ready"

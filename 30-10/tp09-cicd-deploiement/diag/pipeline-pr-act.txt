@@ -1,0 +1,42 @@
+$ act pull_request -e .ci/pr-event.json -W .github/workflows/ci.yml -P ubuntu-24.04=catthehacker/ubuntu:act-24.04 \
+      --container-architecture linux/arm64 --container-daemon-socket /var/run/docker.sock --concurrent-jobs 1 --rm
+[code retour 0, 44 s, workflow final ; serveurs tp09-* arrêtés pendant le run : syft-scanner échouait en ENOMEM sous 1 Go libre]
+
+[ci/lint]   ✅  Success - Main actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+[ci/lint]   ✅  Success - Main hadolint
+[ci/lint]   ✅  Success - Main docker compose config
+[ci/lint] 🏁  Job succeeded
+[ci/build-1]   ✅  Success - Main actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+[ci/build-1]   ✅  Success - Main Préfixe d'image en minuscules
+[ci/build-2]   ✅  Success - Main actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+[ci/build-2]   ✅  Success - Main Préfixe d'image en minuscules
+[ci/build-1]   ✅  Success - Main docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
+[ci/build-2]   ✅  Success - Main docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
+[ci/build-1]   ✅  Success - Main docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+[ci/build-2]   ✅  Success - Main docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+[ci/build-2]   ✅  Success - Main Tags et labels OCI
+[ci/build-1]   ✅  Success - Main Tags et labels OCI
+[ci/build-2]   ✅  Success - Main pip.conf (secret de build du worker)
+[ci/build-1]   ✅  Success - Main Tests (étape test)
+[ci/build-2]   ✅  Success - Main Tests (étape test)
+[ci/build-2]   ✅  Success - Main Build multi-arch
+[ci/build-1]   ✅  Success - Main Build multi-arch
+[ci/build-2] 🏁  Job succeeded
+[ci/build-1] 🏁  Job succeeded
+
+--- extraits
+[ci/lint]   | OK compose.yml
+[ci/lint]   | OK compose.yml compose.override.yml
+[ci/lint]   | OK compose.yml compose.prod.yml
+[ci/build-1]   ⚙  ::set-env:: IMAGE_PREFIX=ghcr.io/altex25
+[ci/build-2]   ⚙  ::set-env:: IMAGE_PREFIX=ghcr.io/altex25
+[ci/build-2]   | #5 importing cache manifest from gha:11623782762028244732
+[ci/build-2]   | #15 [test 5/5] RUN ruff check . && python -m pytest -q -p no:cacheprovider
+[ci/build-1]   | #5 importing cache manifest from gha:10908051295031945570
+[ci/build-2]   | #6 importing cache manifest from gha:8304660503393519311
+[ci/build-2]   | #16 [linux/arm64 test 5/5] RUN ruff check . && python -m pytest -q -p no:cacheprovider
+[ci/build-2]   | #25 [linux/amd64 test 5/5] RUN ruff check . && python -m pytest -q -p no:cacheprovider
+[ci/build-1]   | #8 importing cache manifest from gha:13198136160837055235
+[ci/build-2]   | #39 exporting to GitHub Actions Cache
+[ci/build-1]   | #37 exporting to GitHub Actions Cache
+[ci/build-1]   | [command]/usr/bin/docker buildx build --build-arg APP_VERSION=pr-42 --build-arg GIT_SHA=7952126691860723f287292ed7c4e291084ce95f --build-arg SOURCE_URL=https://github.com/Altex25/docker --cache-from type=gha,scope=shopapi --cache-to type=gha,scope=shopapi,mode=max --iidfile /tmp/docker-actions-toolkit-1x1CVj/build-iidfile-674ebb9669.txt SAS --platform linux/amd64,linux/arm64 --attest type=provenance,mode=max,builder-id=https://github.com/Altex25/docker/actions/runs/1/attempts/1 --attest type=sbom,disabled=false --tag ghcr.io/altex25/shopapi:pr-42 --target runtime --metadata-fi

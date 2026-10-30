@@ -1,0 +1,64 @@
+$ REGISTRY=registry.local:5000 VERSION=sha-8cab045 ./deploy/verify-signature.sh
+  OK     signature vérifiée (clé deploy/cosign.pub) : registry.local:5000/shopapi:sha-8cab045@sha256:854437d8c320b67cd331a7e34c0ad92574f3262f1ef6d2817a6ded2ed33db089
+API_IMAGE=registry.local:5000/shopapi:sha-8cab045@sha256:854437d8c320b67cd331a7e34c0ad92574f3262f1ef6d2817a6ded2ed33db089
+  OK     signature vérifiée (clé deploy/cosign.pub) : registry.local:5000/shop-worker:sha-8cab045@sha256:26e184999749cf99d025f9f99aa243aa2a3246ca72f5227c73f8029f7f1eb1fb
+WORKER_IMAGE=registry.local:5000/shop-worker:sha-8cab045@sha256:26e184999749cf99d025f9f99aa243aa2a3246ca72f5227c73f8029f7f1eb1fb
+[code retour 0]
+
+$ REGISTRY=registry.local:5000 VERSION=1.5.0 ./deploy/verify-signature.sh
+  OK     signature vérifiée (clé deploy/cosign.pub) : registry.local:5000/shopapi:1.5.0@sha256:854437d8c320b67cd331a7e34c0ad92574f3262f1ef6d2817a6ded2ed33db089
+API_IMAGE=registry.local:5000/shopapi:1.5.0@sha256:854437d8c320b67cd331a7e34c0ad92574f3262f1ef6d2817a6ded2ed33db089
+  OK     signature vérifiée (clé deploy/cosign.pub) : registry.local:5000/shop-worker:1.5.0@sha256:26e184999749cf99d025f9f99aa243aa2a3246ca72f5227c73f8029f7f1eb1fb
+WORKER_IMAGE=registry.local:5000/shop-worker:1.5.0@sha256:26e184999749cf99d025f9f99aa243aa2a3246ca72f5227c73f8029f7f1eb1fb
+[code retour 0]
+
+$ REGISTRY=registry.local:5000 VERSION=1.4.3 WORKER_VERSION=1.0.0 ./deploy/verify-signature.sh   (images du TP03, signées par une autre clé)
+  ÉCHEC  signature invalide ou absente : registry.local:5000/shopapi:1.4.3 (sha256:e724fbb5406fdb5ee89a782cea7094f6971d9319bcf06adf2d2d6857f7302b3a)
+            invalid signature when validating ASN.1 encoded signature
+           error during command execution: no matching signatures: invalid signature when validating ASN.1 encoded signature
+            invalid signature when validating ASN.1 encoded signature
+[code retour 1]
+
+$ REGISTRY=registry.local:5000 VERSION=pr-local ./deploy/verify-signature.sh   (build de PR, jamais poussé)
+2026/10/30 14:37:17 HEAD request failed, falling back on GET: HEAD https://registry.local:5000/v2/shopapi/manifests/pr-local: unexpected status code 404 Not Found (HEAD responses have no body, use GET for details)
+Error: GET https://registry.local:5000/v2/shopapi/manifests/pr-local: MANIFEST_UNKNOWN: manifest unknown; unknown tag=pr-local
+  ÉCHEC  registry.local:5000/shopapi:pr-local introuvable
+[code retour 1]
+
+$ cosign verify --key deploy/cosign.pub --insecure-ignore-tlog registry.local:5000/shopapi:1.5.0 | jq
+WARNING: Skipping tlog verification is an insecure practice that lacks transparency and auditability verification for the signature.
+Verification for registry.local:5000/shopapi:1.5.0 --
+The following checks were performed on each of these signatures:
+  - The cosign claims were validated
+  - The signatures were verified against the specified public key
+[{"critical":{"identity":{"docker-reference":"registry.local:5000/shopapi"},"image":{"docker-manifest-digest":"sha256:854437d8c320b67cd331a7e34c0ad92574f3262f1ef6d2817a6ded2ed33db089"},"type":"cosign container image signature"},"optional":null}]
+
+$ crane copy shopapi:1.4.3 shopapi:sha-bad0000   (image poussée hors pipeline : jamais signée par la CI)
+$ DOCKER_CONTEXT=prod REGISTRY=registry.local:5000 VERSION=sha-bad0000 ./deploy/rolling-update.sh
+[  0s] cible : prod (ssh://deploy@localhost:2223), version sha-bad0000, 2 réplicas
+[  1s] fichiers de configuration synchronisés dans /srv/shop, .env et secrets/ lus sur le serveur
+  ÉCHEC  signature invalide ou absente : registry.local:5000/shopapi:sha-bad0000 (sha256:e724fbb5406fdb5ee89a782cea7094f6971d9319bcf06adf2d2d6857f7302b3a)
+            invalid signature when validating ASN.1 encoded signature
+           error during command execution: no matching signatures: invalid signature when validating ASN.1 encoded signature
+            invalid signature when validating ASN.1 encoded signature
+[code retour 1]
+prod après la tentative : shop-api-1=registry.local:5000/shopapi:1.5.0 shop-api-2=registry.local:5000/shopapi:1.5.0
+
+$ crane manifest registry.local:5000/shopapi:1.5.0   (index multi-arch + attestations BuildKit)
+  sha256:7d9c79f82df2…  linux/amd64  image
+  sha256:7066ec3dcab0…  linux/arm64  image
+  sha256:44a9cbc40f51…  unknown/unknown  attestation-manifest -> sha256:7d9c79f82df2…
+  sha256:83be03a2c8de…  unknown/unknown  attestation-manifest -> sha256:7066ec3dcab0…
+
+$ crane manifest registry.local:5000/shopapi@sha256:44a9cbc40f51…   (contenu d'une attestation)
+  https://spdx.dev/Document  362630 octets
+  https://slsa.dev/provenance/v1  30318 octets
+
+$ REGISTRY=registry.local:5000 VERSION=sha-e0916e6 ./deploy/verify-signature.sh   (build bloqué par trivy : poussé, jamais signé)
+  ÉCHEC  signature invalide ou absente : registry.local:5000/shopapi:sha-e0916e6 (sha256:32bd5aec7315f5780e7c3414cff0952a92941055bae7235c851234d173e0a64e)
+           WARNING: Skipping tlog verification is an insecure practice that lacks transparency and auditability verification for the signature.
+           Error: no signatures found
+           error during command execution: no signatures found
+[code retour 1]
+
+(les tags de test sha-bad0000 ont ensuite été supprimés : DELETE /v2/<repo>/manifests/sha-bad0000 -> 202, le digest de 1.4.3 reste intact)

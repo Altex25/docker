@@ -1,0 +1,98 @@
+$ echo oui | ./ci-local.sh tag v1.5.0      (le « oui » est avalé par docker run -i : corrigé ensuite par APPROVE / /dev/tty)
+!! arbre non commité : identifiant dérivé du contenu (8cab04578af5cfcc4139dca9d218bdd3b460e267)
+
+== [0s] tags semver immuables : 1.5.0 encore libre ?
+  OK     registry.local:5000/shopapi:1.5.0 jamais publié
+  OK     registry.local:5000/shop-worker:1.5.0 jamais publié
+
+== [1s] hadolint
+  shopapi      OK
+  shop-worker  OK
+
+== [1s] docker compose config
+  OK     compose.yml
+  OK     compose.yml compose.override.yml
+  OK     compose.yml compose.prod.yml
+
+== [3s] build de l'étape test
+  -- shopapi
+  OK     tests shopapi
+  -- shop-worker
+  OK     tests shop-worker
+
+== [5s] build multi-arch (linux/amd64,linux/arm64)
+  OK     shopapi : registry.local:5000/shopapi:sha-8cab045 registry.local:5000/shopapi:1.5.0 registry.local:5000/shopapi:1.5 registry.local:5000/shopapi:1 -> sha256:854437d8c320b67cd331a7e34c0ad92574f3262f1ef6d2817a6ded2ed33db089
+  OK     shop-worker : registry.local:5000/shop-worker:sha-8cab045 registry.local:5000/shop-worker:1.5.0 registry.local:5000/shop-worker:1.5 registry.local:5000/shop-worker:1 -> sha256:26e184999749cf99d025f9f99aa243aa2a3246ca72f5227c73f8029f7f1eb1fb
+
+== [26s] scan trivy bloquant : shopapi
+  OK     linux/amd64 : aucune CVE HIGH/CRITICAL corrigeable
+  OK     linux/arm64 : aucune CVE HIGH/CRITICAL corrigeable
+
+== [29s] porte de release : shopapi
+== Porte de release : registry.local:5000/shopapi@sha256:854437d8c320b67cd331a7e34c0ad92574f3262f1ef6d2817a6ded2ed33db089
+  OK     label org.opencontainers.image.version=1.5.0
+  OK     label org.opencontainers.image.revision=8cab04578af5cfcc4139dca9d218bdd3b460e267
+  OK     label org.opencontainers.image.source=https://github.com/Altex25/shop
+  OK     utilisateur non-root (1000:1000)
+  OK     HEALTHCHECK (wget -q -O /dev/null http://127.0.0.1:3000/health)
+  OK     aucune CVE HIGH/CRITICAL corrigeable
+  OK     aucun identifiant dans les variables ENV de l'image
+  OK     aucun secret détecté
+== ACCEPTÉ
+
+== [31s] scan trivy bloquant : shop-worker
+  OK     linux/amd64 : aucune CVE HIGH/CRITICAL corrigeable
+  OK     linux/arm64 : aucune CVE HIGH/CRITICAL corrigeable
+
+== [35s] porte de release : shop-worker
+== Porte de release : registry.local:5000/shop-worker@sha256:26e184999749cf99d025f9f99aa243aa2a3246ca72f5227c73f8029f7f1eb1fb
+  OK     label org.opencontainers.image.version=1.5.0
+  OK     label org.opencontainers.image.revision=8cab04578af5cfcc4139dca9d218bdd3b460e267
+  OK     label org.opencontainers.image.source=https://github.com/Altex25/shop
+  OK     utilisateur non-root (10001:10001)
+  OK     HEALTHCHECK (python -c import urllib.request; urllib.request.urlopen('http://127.0.)
+  OK     aucune CVE HIGH/CRITICAL corrigeable
+  OK     aucun identifiant dans les variables ENV de l'image
+  OK     aucun secret détecté
+== ACCEPTÉ
+
+== [37s] signature cosign (key) : shopapi
+  OK     signé : registry.local:5000/shopapi@sha256:854437d8c320b67cd331a7e34c0ad92574f3262f1ef6d2817a6ded2ed33db089
+
+== [38s] signature cosign (key) : shop-worker
+  OK     signé : registry.local:5000/shop-worker@sha256:26e184999749cf99d025f9f99aa243aa2a3246ca72f5227c73f8029f7f1eb1fb
+
+== [38s] environment production : approbation manuelle
+[code retour 1 : read sans entrée]
+
+$ APPROVE=oui ./ci-local.sh tag v1.5.0      (relance : tag semver déjà publié)
+!! arbre non commité : identifiant dérivé du contenu (8cab04578af5cfcc4139dca9d218bdd3b460e267)
+
+== [0s] tags semver immuables : 1.5.0 encore libre ?
+  ÉCHEC  registry.local:5000/shopapi:1.5.0 existe déjà (sha256:854437d8c320b67cd331a7e34c0ad92574f3262f1ef6d2817a6ded2ed33db089) : un tag semver ne se republie pas
+
+$ APPROVE=non ./ci-local.sh deploy-prod v1.5.0
+!! arbre non commité : identifiant dérivé du contenu (8cab04578af5cfcc4139dca9d218bdd3b460e267)
+
+== [0s] environment production : approbation manuelle
+  Déployer 1.5.0 en production (prod) ? [oui/non] non (APPROVE)
+  Refusé : déploiement prod annulé
+[code retour 1]
+
+$ APPROVE=oui ./ci-local.sh deploy-prod v1.5.0
+!! arbre non commité : identifiant dérivé du contenu (8cab04578af5cfcc4139dca9d218bdd3b460e267)
+
+== [0s] environment production : approbation manuelle
+  Déployer 1.5.0 en production (prod) ? [oui/non] oui (APPROVE)
+  approuvé par alexandre à 15:34:51
+
+== [0s] déploiement prod : vérification des signatures puis rolling update (1.5.0)
+[  0s] cible : prod (ssh://deploy@localhost:2223), version 1.5.0, 2 réplicas
+[  0s] fichiers de configuration synchronisés dans /srv/shop, .env et secrets/ lus sur le serveur
+  OK     signature vérifiée (clé deploy/cosign.pub) : registry.local:5000/shopapi:1.5.0@sha256:854437d8c320b67cd331a7e34c0ad92574f3262f1ef6d2817a6ded2ed33db089
+  OK     signature vérifiée (clé deploy/cosign.pub) : registry.local:5000/shop-worker:1.5.0@sha256:26e184999749cf99d025f9f99aa243aa2a3246ca72f5227c73f8029f7f1eb1fb
+[  8s] images tirées sur le serveur
+[ 18s] db, redis, traefik et worker à jour et healthy
+[ 20s] premier déploiement : 2 réplicas healthy
+
+== [21s] pipeline deploy-prod terminé (21s)

@@ -1,0 +1,299 @@
+$ ./ci-local.sh main      (premier passage complet, v1 = sha-6177fe9)
+!! arbre non commité : identifiant dérivé du contenu (6177fe98060ecca7acb256ec1872f15200d011a1)
+
+== [0s] hadolint
+  shopapi      OK
+  shop-worker  OK
+
+== [0s] docker compose config
+  OK     compose.yml
+  OK     compose.yml compose.override.yml
+  OK     compose.yml compose.prod.yml
+
+== [1s] build de l'étape test
+  -- shopapi
+  OK     tests shopapi
+  -- shop-worker
+  OK     tests shop-worker
+
+== [6s] build multi-arch (linux/amd64,linux/arm64)
+  OK     shopapi : registry.local:5000/shopapi:sha-6177fe9 -> sha256:ee2b2a41568d20ba03612933e18d35337fa0f1ec4daa0c6bde0613fb139826c8
+  OK     shop-worker : registry.local:5000/shop-worker:sha-6177fe9 -> sha256:c95807ef879e0770389993130fc94e3afb54b487a50486ca07d8ae871b139160
+
+== [38s] scan trivy bloquant : shopapi
+  OK     linux/amd64 : aucune CVE HIGH/CRITICAL corrigeable
+  OK     linux/arm64 : aucune CVE HIGH/CRITICAL corrigeable
+
+== [41s] porte de release : shopapi
+== Porte de release : registry.local:5000/shopapi@sha256:ee2b2a41568d20ba03612933e18d35337fa0f1ec4daa0c6bde0613fb139826c8
+  OK     label org.opencontainers.image.version=sha-6177fe9
+  OK     label org.opencontainers.image.revision=6177fe98060ecca7acb256ec1872f15200d011a1
+  OK     label org.opencontainers.image.source=https://github.com/Altex25/shop
+  OK     utilisateur non-root (1000:1000)
+  OK     HEALTHCHECK (wget -q -O /dev/null http://127.0.0.1:3000/health)
+  OK     aucune CVE HIGH/CRITICAL corrigeable
+  OK     aucun identifiant dans les variables ENV de l'image
+  OK     aucun secret détecté
+== ACCEPTÉ
+
+== [45s] scan trivy bloquant : shop-worker
+  OK     linux/amd64 : aucune CVE HIGH/CRITICAL corrigeable
+  OK     linux/arm64 : aucune CVE HIGH/CRITICAL corrigeable
+
+== [48s] porte de release : shop-worker
+== Porte de release : registry.local:5000/shop-worker@sha256:c95807ef879e0770389993130fc94e3afb54b487a50486ca07d8ae871b139160
+  OK     label org.opencontainers.image.version=sha-6177fe9
+  OK     label org.opencontainers.image.revision=6177fe98060ecca7acb256ec1872f15200d011a1
+  OK     label org.opencontainers.image.source=https://github.com/Altex25/shop
+  OK     utilisateur non-root (10001:10001)
+  OK     HEALTHCHECK (python -c import urllib.request; urllib.request.urlopen('http://127.0.)
+  OK     aucune CVE HIGH/CRITICAL corrigeable
+  OK     aucun identifiant dans les variables ENV de l'image
+  OK     aucun secret détecté
+== ACCEPTÉ
+
+== [51s] signature cosign (key) : shopapi
+  OK     signé : registry.local:5000/shopapi@sha256:ee2b2a41568d20ba03612933e18d35337fa0f1ec4daa0c6bde0613fb139826c8
+
+== [51s] signature cosign (key) : shop-worker
+  OK     signé : registry.local:5000/shop-worker@sha256:c95807ef879e0770389993130fc94e3afb54b487a50486ca07d8ae871b139160
+
+== [52s] déploiement preprod : vérification des signatures puis rolling update (sha-6177fe9)
+[  0s] cible : preprod (ssh://deploy@localhost:2222), version sha-6177fe9, 2 réplicas
+[  1s] fichiers de configuration synchronisés dans /srv/shop, .env et secrets/ lus sur le serveur
+  OK     signature vérifiée (clé deploy/cosign.pub) : registry.local:5000/shopapi:sha-6177fe9@sha256:ee2b2a41568d20ba03612933e18d35337fa0f1ec4daa0c6bde0613fb139826c8
+  OK     signature vérifiée (clé deploy/cosign.pub) : registry.local:5000/shop-worker:sha-6177fe9@sha256:c95807ef879e0770389993130fc94e3afb54b487a50486ca07d8ae871b139160
+[  5s] images tirées sur le serveur
+ 9986a736f7d3 Pulling fs layer 0B
+ 282ccaec3303 Pulling fs layer 0B
+ 896d994e2a0b Pulling fs layer 0B
+ 2c58df13c5ba Pulling fs layer 0B
+ 64d7aa59458e Pulling fs layer 0B
+ 5b5e28ab66df Pulling fs layer 0B
+ f0c426790dd6 Pulling fs layer 0B
+ 958049595809 Pulling fs layer 0B
+ 0d8cd7d922c1 Pulling fs layer 0B
+ ab0dd51e50cb Pulling fs layer 0B
+ 902bcae63a2d Pulling fs layer 0B
+ 2c58df13c5ba Waiting 0B
+ 64d7aa59458e Waiting 0B
+ 5b5e28ab66df Waiting 0B
+ f0c426790dd6 Waiting 0B
+ 958049595809 Waiting 0B
+ 0d8cd7d922c1 Waiting 0B
+ ab0dd51e50cb Waiting 0B
+ 902bcae63a2d Waiting 0B
+ 7d46ac86a55c Pulling fs layer 0B
+ a033cd1240e2 Pulling fs layer 0B
+ 4918c7f44bed Pulling fs layer 0B
+ 278db6a31ca2 Pulling fs layer 0B
+ 9c2b3e8632ac Pulling fs layer 0B
+ 4f4fb700ef54 Pulling fs layer 0B
+ bc6ec448cd22 Pulling fs layer 0B
+ 7d46ac86a55c Waiting 0B
+ a033cd1240e2 Waiting 0B
+ 4918c7f44bed Waiting 0B
+ 278db6a31ca2 Waiting 0B
+ 9c2b3e8632ac Waiting 0B
+ 4f4fb700ef54 Waiting 0B
+ bc6ec448cd22 Waiting 0B
+ 5de55e5ef9c0 Pulling fs layer 0B
+ fb3926a948b3 Pulling fs layer 0B
+ 923c5a8e8fd1 Pulling fs layer 0B
+ 3d3493ca19bf Pulling fs layer 0B
+ 5de55e5ef9c0 Waiting 0B
+ fb3926a948b3 Waiting 0B
+ 923c5a8e8fd1 Waiting 0B
+ 3d3493ca19bf Waiting 0B
+ 282ccaec3303 Downloading 985B
+ 282ccaec3303 Verifying Checksum 0B
+ 282ccaec3303 Download complete 0B
+ 9986a736f7d3 Downloading 48.51kB
+ 896d994e2a0b Downloading 15.74kB
+ 9986a736f7d3 Verifying Checksum 0B
+ 9986a736f7d3 Download complete 0B
+ 9986a736f7d3 Extracting 65.54kB
+ 896d994e2a0b Downloading 1.047MB
+ 896d994e2a0b Verifying Checksum 0B
+ 896d994e2a0b Download complete 0B
+ 9986a736f7d3 Extracting 4.088MB
+ 9986a736f7d3 Pull complete 0B
+ 282ccaec3303 Extracting 985B
+ 282ccaec3303 Extracting 985B
+ 282ccaec3303 Pull complete 0B
+ 896d994e2a0b Extracting 32.77kB
+ 896d994e2a0b Extracting 1.047MB
+ 896d994e2a0b Extracting 1.047MB
+ 896d994e2a0b Pull complete 0B
+ 2c58df13c5ba Downloading 175B
+ 2c58df13c5ba Verifying Checksum 0B
+ 2c58df13c5ba Download complete 0B
+ 2c58df13c5ba Extracting 175B
+ 2c58df13c5ba Extracting 175B
+ 2c58df13c5ba Pull complete 0B
+ 64d7aa59458e Downloading 116B
+ 64d7aa59458e Verifying Checksum 0B
+ 64d7aa59458e Download complete 0B
+ 64d7aa59458e Extracting 116B
+ 64d7aa59458e Extracting 116B
+ 64d7aa59458e Pull complete 0B
+ 5b5e28ab66df Downloading 538.1kB
+ 5b5e28ab66df Downloading 6.404MB
+ 5b5e28ab66df Downloading 12.82MB
+ f0c426790dd6 Downloading 3.501kB
+ f0c426790dd6 Downloading 9.562kB
+ f0c426790dd6 Download complete 0B
+ 5b5e28ab66df Downloading 19.21MB
+ 958049595809 Downloading 128B
+ 958049595809 Verifying Checksum 0B
+ 958049595809 Download complete 0B
+ 5b5e28ab66df Downloading 25.08MB
+ 5b5e28ab66df Downloading 31.49MB
+ 5b5e28ab66df Downloading 37.9MB
+ 0d8cd7d922c1 Downloading 169B
+ 0d8cd7d922c1 Verifying Checksum 0B
+ 0d8cd7d922c1 Download complete 0B
+ 5b5e28ab66df Downloading 44.32MB
+ ab0dd51e50cb Downloading 3.501kB
+ ab0dd51e50cb Downloading 5.42kB
+ ab0dd51e50cb Verifying Checksum 0B
+ ab0dd51e50cb Download complete 0B
+ 5b5e28ab66df Downloading 50.71MB
+ 5b5e28ab66df Downloading 57.13MB
+ 5b5e28ab66df Downloading 63.56MB
+ 902bcae63a2d Downloading 185B
+ 902bcae63a2d Verifying Checksum 0B
+ 902bcae63a2d Download complete 0B
+ 5b5e28ab66df Downloading 69.44MB
+ 5b5e28ab66df Downloading 75.83MB
+ 5b5e28ab66df Downloading 81.72MB
+ 7d46ac86a55c Downloading 48.55kB
+ 5b5e28ab66df Downloading 87.58MB
+ 7d46ac86a55c Downloading 490.9kB
+ 5b5e28ab66df Downloading 91.87MB
+ 7d46ac86a55c Downloading 2.654MB
+ 7d46ac86a55c Downloading 3.974MB
+ 7d46ac86a55c Verifying Checksum 0B
+ 7d46ac86a55c Download complete 0B
+ 5b5e28ab66df Verifying Checksum 0B
+ 5b5e28ab66df Download complete 0B
+ 7d46ac86a55c Extracting 65.54kB
+ 5b5e28ab66df Extracting 557.1kB
+ 7d46ac86a55c Extracting 1.966MB
+ 7d46ac86a55c Extracting 3.974MB
+ 7d46ac86a55c Extracting 3.974MB
+ 7d46ac86a55c Pull complete 0B
+ a033cd1240e2 Downloading 950B
+ a033cd1240e2 Verifying Checksum 0B
+ a033cd1240e2 Download complete 0B
+ a033cd1240e2 Extracting 950B
+ a033cd1240e2 Extracting 950B
+ a033cd1240e2 Pull complete 0B
+ 5b5e28ab66df Extracting 6.685MB
+ 5b5e28ab66df Extracting 20.61MB
+ 5b5e28ab66df Extracting 35.09MB
+ 278db6a31ca2 Downloading 130.5kB
+ 5b5e28ab66df Extracting 44.56MB
+ 4918c7f44bed Downloading 3.5kB
+ 278db6a31ca2 Downloading 5.504MB
+ 9c2b3e8632ac Downloading 101B
+ 9c2b3e8632ac Verifying Checksum 0B
+ 9c2b3e8632ac Download complete 0B
+ 5b5e28ab66df Extracting 54.59MB
+ 4918c7f44bed Downloading 201.4kB
+ 4918c7f44bed Verifying Checksum 0B
+ 4918c7f44bed Download complete 0B
+ 4918c7f44bed Extracting 32.77kB
+ 278db6a31ca2 Downloading 11.53MB
+ 4918c7f44bed Extracting 201.4kB
+ 278db6a31ca2 Downloading 12.58MB
+ 278db6a31ca2 Verifying Checksum 0B
+ 278db6a31ca2 Download complete 0B
+ 4918c7f44bed Extracting 201.4kB
+ 5b5e28ab66df Extracting 61.83MB
+ 4918c7f44bed Pull complete 0B
+ 278db6a31ca2 Extracting 131.1kB
+ 5b5e28ab66df Extracting 64.06MB
+ 278db6a31ca2 Extracting 4.063MB
+ 5b5e28ab66df Extracting 70.19MB
+ 278db6a31ca2 Extracting 12.58MB
+ 278db6a31ca2 Extracting 12.58MB
+ 278db6a31ca2 Pull complete 0B
+ 9c2b3e8632ac Extracting 101B
+ 9c2b3e8632ac Extracting 101B
+ 9c2b3e8632ac Pull complete 0B
+ 4f4fb700ef54 Downloading 32B
+ 4f4fb700ef54 Verifying Checksum 0B
+ 4f4fb700ef54 Download complete 0B
+ 4f4fb700ef54 Extracting 32B
+ 4f4fb700ef54 Extracting 32B
+ 4f4fb700ef54 Pull complete 0B
+ bc6ec448cd22 Downloading 602B
+ bc6ec448cd22 Verifying Checksum 0B
+ bc6ec448cd22 Download complete 0B
+ bc6ec448cd22 Extracting 602B
+ bc6ec448cd22 Extracting 602B
+ bc6ec448cd22 Pull complete 0B
+ 5b5e28ab66df Extracting 77.43MB
+ 5de55e5ef9c0 Downloading 48.51kB
+ 5b5e28ab66df Extracting 84.67MB
+ 5de55e5ef9c0 Verifying Checksum 0B
+ 5de55e5ef9c0 Download complete 0B
+ 5de55e5ef9c0 Extracting 65.54kB
+ 5b5e28ab66df Extracting 92.47MB
+ 5b5e28ab66df Extracting 93.64MB
+ 5de55e5ef9c0 Extracting 3.867MB
+ 5de55e5ef9c0 Extracting 4.183MB
+ 5de55e5ef9c0 Extracting 4.183MB
+ 5de55e5ef9c0 Pull complete 0B
+ 5b5e28ab66df Pull complete 0B
+ f0c426790dd6 Extracting 9.562kB
+ f0c426790dd6 Extracting 9.562kB
+ f0c426790dd6 Pull complete 0B
+ 958049595809 Extracting 128B
+ 958049595809 Extracting 128B
+ 958049595809 Pull complete 0B
+ 0d8cd7d922c1 Extracting 169B
+ 0d8cd7d922c1 Extracting 169B
+ 0d8cd7d922c1 Pull complete 0B
+ ab0dd51e50cb Extracting 5.42kB
+ ab0dd51e50cb Extracting 5.42kB
+ ab0dd51e50cb Pull complete 0B
+ 902bcae63a2d Extracting 185B
+ 902bcae63a2d Extracting 185B
+ 902bcae63a2d Pull complete 0B
+ fb3926a948b3 Downloading 15.75kB
+ fb3926a948b3 Downloading 411.7kB
+ fb3926a948b3 Verifying Checksum 0B
+ fb3926a948b3 Download complete 0B
+ fb3926a948b3 Extracting 32.77kB
+ fb3926a948b3 Extracting 411.7kB
+ fb3926a948b3 Extracting 411.7kB
+ 923c5a8e8fd1 Downloading 455kB
+ fb3926a948b3 Pull complete 0B
+ 923c5a8e8fd1 Downloading 6.423MB
+ 3d3493ca19bf Downloading 370B
+ 3d3493ca19bf Verifying Checksum 0B
+ 3d3493ca19bf Download complete 0B
+ 923c5a8e8fd1 Downloading 12.37MB
+ 923c5a8e8fd1 Downloading 18.29MB
+ 923c5a8e8fd1 Downloading 24.73MB
+ 923c5a8e8fd1 Downloading 30.68MB
+ 923c5a8e8fd1 Downloading 36.63MB
+ 923c5a8e8fd1 Downloading 43.01MB
+ 923c5a8e8fd1 Verifying Checksum 0B
+ 923c5a8e8fd1 Download complete 0B
+ 923c5a8e8fd1 Extracting 458.8kB
+ 923c5a8e8fd1 Extracting 10.09MB
+ 923c5a8e8fd1 Extracting 20.19MB
+ 923c5a8e8fd1 Extracting 30.74MB
+ 923c5a8e8fd1 Extracting 42.66MB
+ 923c5a8e8fd1 Extracting 45.04MB
+ 923c5a8e8fd1 Pull complete 0B
+ 3d3493ca19bf Extracting 370B
+ 3d3493ca19bf Extracting 370B
+ 3d3493ca19bf Pull complete 0B
+[ 16s] db, redis, traefik et worker à jour et healthy
+[ 18s] premier déploiement : 2 réplicas healthy
+
+== [70s] pipeline main terminé (70s)

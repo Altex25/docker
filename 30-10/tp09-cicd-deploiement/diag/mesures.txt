@@ -1,0 +1,212 @@
+### 2026-10-30 15:43:18 contexte preprod, sha-9cab478 -> sha-8cab045
+  OK     signature vérifiée (clé deploy/cosign.pub) : registry.local:5000/shopapi:sha-9cab478@sha256:3b4e30aec4592614588870773ca1cd6cba4d7fb1d764502beebc7c2584553838
+  OK     signature vérifiée (clé deploy/cosign.pub) : registry.local:5000/shop-worker:sha-9cab478@sha256:483100fa42ef6ef3e71c44afeacd77b055b0762667bffbe582f421269afe81e3
+état initial : 2 réplicas en sha-9cab478
+
+== A. Témoin : aucun déploiement
+   $ sleep 1
+   commande terminée en 1s (code retour 0)
+   == 2999 requêtes en 30s vers http://127.0.0.1/health (Host: api.localhost), 100 req/s
+   == ÉCHECS : 0 (0.00 %) sur 0 seconde(s)
+   == latence des succès : p50=3.3 ms  p99=6.7 ms  max=9.5 ms
+RESUME {"sent":2999,"failures":0,"failingSeconds":0,"reasons":{},"p99":6.7}
+
+== B. Naïf : docker compose up -d --force-recreate api
+   $ ./deploy/naive-update.sh
+   commande terminée en 6s (code retour 0)
+   t=  5s  envoyées=100  ok=35  échecs=65  <<<
+   t=  6s  envoyées=100  ok=0  échecs=100  <<<
+   t=  7s  envoyées=100  ok=0  échecs=100  <<<
+   t=  8s  envoyées=100  ok=0  échecs=100  <<<
+   t=  9s  envoyées=100  ok=0  échecs=100  <<<
+   t= 10s  envoyées=100  ok=0  échecs=100  <<<
+   t= 11s  envoyées=100  ok=0  échecs=100  <<<
+   t= 12s  envoyées=100  ok=76  échecs=24  <<<
+   == 3999 requêtes en 40s vers http://127.0.0.1/health (Host: api.localhost), 100 req/s
+   == ÉCHECS : 689 (17.23 %) sur 8 seconde(s)
+        HTTP 503 : 489
+        HTTP 404 : 200
+   == latence des succès : p50=3.3 ms  p99=7.0 ms  max=17.1 ms
+RESUME {"sent":3999,"failures":689,"failingSeconds":8,"reasons":{"HTTP 503":489,"HTTP 404":200},"p99":7}
+
+  OK     signature vérifiée (clé deploy/cosign.pub) : registry.local:5000/shopapi:sha-9cab478@sha256:3b4e30aec4592614588870773ca1cd6cba4d7fb1d764502beebc7c2584553838
+  OK     signature vérifiée (clé deploy/cosign.pub) : registry.local:5000/shop-worker:sha-9cab478@sha256:483100fa42ef6ef3e71c44afeacd77b055b0762667bffbe582f421269afe81e3
+== C. Rolling update sha-9cab478 -> sha-8cab045
+   $ ./deploy/rolling-update.sh
+   | [  0s] cible : preprod (ssh://deploy@localhost:2222), version sha-8cab045, 2 réplicas
+   | [  0s] fichiers de configuration synchronisés dans /srv/shop, .env et secrets/ lus sur le serveur
+   |   OK     signature vérifiée (clé deploy/cosign.pub) : registry.local:5000/shopapi:sha-8cab045@sha256:854437d8c320b67cd331a7e34c0ad92574f3262f1ef6d2817a6ded2ed33db089
+   |   OK     signature vérifiée (clé deploy/cosign.pub) : registry.local:5000/shop-worker:sha-8cab045@sha256:26e184999749cf99d025f9f99aa243aa2a3246ca72f5227c73f8029f7f1eb1fb
+   | [  2s] images tirées sur le serveur
+   | [  5s] db, redis, traefik et worker à jour et healthy
+   | [  6s] shop-api-25 démarré (registry.local:5000/shopapi:sha-8cab045@854437d8c320…), attente de healthy
+   | [  7s] shop-api-25 healthy, Traefik l'ajoute au load balancer
+   | [ 10s] arrêt de shop-api-23 (SIGTERM, 15s avant SIGKILL)
+   | [ 16s] shop-api-26 démarré (registry.local:5000/shopapi:sha-8cab045@854437d8c320…), attente de healthy
+   | [ 17s] shop-api-26 healthy, Traefik l'ajoute au load balancer
+   | [ 20s] arrêt de shop-api-24 (SIGTERM, 15s avant SIGKILL)
+   |     shop-api-25 Up 19 seconds (healthy)
+   |     shop-api-26 Up 9 seconds (healthy)
+   | [ 25s] smoke test via Traefik (api.localhost) : {"status":"ready","checks":{"db":"ok","redis":"ok"}}
+   | [ 25s] rolling update terminé : sha-8cab045
+   commande terminée en 25s (code retour 0)
+   == 4999 requêtes en 50s vers http://127.0.0.1/health (Host: api.localhost), 100 req/s
+   == ÉCHECS : 0 (0.00 %) sur 0 seconde(s)
+   == latence des succès : p50=3.2 ms  p99=7.5 ms  max=39.6 ms
+RESUME {"sent":4999,"failures":0,"failingSeconds":0,"reasons":{},"p99":7.5}
+
+== D. Rollback sha-8cab045 -> sha-9cab478
+   $ ./deploy/rolling-update.sh
+   | [  0s] cible : preprod (ssh://deploy@localhost:2222), version sha-9cab478, 2 réplicas
+   | [  0s] fichiers de configuration synchronisés dans /srv/shop, .env et secrets/ lus sur le serveur
+   |   OK     signature vérifiée (clé deploy/cosign.pub) : registry.local:5000/shopapi:sha-9cab478@sha256:3b4e30aec4592614588870773ca1cd6cba4d7fb1d764502beebc7c2584553838
+   |   OK     signature vérifiée (clé deploy/cosign.pub) : registry.local:5000/shop-worker:sha-9cab478@sha256:483100fa42ef6ef3e71c44afeacd77b055b0762667bffbe582f421269afe81e3
+   | [  2s] images tirées sur le serveur
+   | [  7s] db, redis, traefik et worker à jour et healthy
+   | [  7s] shop-api-27 démarré (registry.local:5000/shopapi:sha-9cab478@3b4e30aec459…), attente de healthy
+   | [  8s] shop-api-27 healthy, Traefik l'ajoute au load balancer
+   | [ 11s] arrêt de shop-api-25 (SIGTERM, 15s avant SIGKILL)
+   | [ 17s] shop-api-28 démarré (registry.local:5000/shopapi:sha-9cab478@3b4e30aec459…), attente de healthy
+   | [ 18s] shop-api-28 healthy, Traefik l'ajoute au load balancer
+   | [ 21s] arrêt de shop-api-26 (SIGTERM, 15s avant SIGKILL)
+   |     shop-api-27 Up 19 seconds (healthy)
+   |     shop-api-28 Up 9 seconds (healthy)
+   | [ 27s] smoke test via Traefik (api.localhost) : {"status":"ready","checks":{"db":"ok","redis":"ok"}}
+   | [ 27s] rolling update terminé : sha-9cab478
+   commande terminée en 27s (code retour 0)
+   == 4999 requêtes en 50s vers http://127.0.0.1/health (Host: api.localhost), 100 req/s
+   == ÉCHECS : 0 (0.00 %) sur 0 seconde(s)
+   == latence des succès : p50=2.9 ms  p99=6.8 ms  max=42.2 ms
+RESUME {"sent":4999,"failures":0,"failingSeconds":0,"reasons":{},"p99":6.8}
+
+== E. Rolling sans arrêt propre (docker stop -t 0 : SIGKILL, pas de drain)
+   $ ./deploy/rolling-update.sh
+   | [  0s] cible : preprod (ssh://deploy@localhost:2222), version sha-9cab478, 2 réplicas
+   | [  0s] fichiers de configuration synchronisés dans /srv/shop, .env et secrets/ lus sur le serveur
+   |   OK     signature vérifiée (clé deploy/cosign.pub) : registry.local:5000/shopapi:sha-9cab478@sha256:3b4e30aec4592614588870773ca1cd6cba4d7fb1d764502beebc7c2584553838
+   |   OK     signature vérifiée (clé deploy/cosign.pub) : registry.local:5000/shop-worker:sha-9cab478@sha256:483100fa42ef6ef3e71c44afeacd77b055b0762667bffbe582f421269afe81e3
+   | [  2s] images tirées sur le serveur
+   | [  3s] db, redis, traefik et worker à jour et healthy
+   | [  3s] shop-api-29 démarré (registry.local:5000/shopapi:sha-9cab478@3b4e30aec459…), attente de healthy
+   | [  5s] shop-api-29 healthy, Traefik l'ajoute au load balancer
+   | [  8s] arrêt de shop-api-27 (SIGTERM, 0s avant SIGKILL)
+   | [  8s] shop-api-30 démarré (registry.local:5000/shopapi:sha-9cab478@3b4e30aec459…), attente de healthy
+   | [  9s] shop-api-30 healthy, Traefik l'ajoute au load balancer
+   | [ 12s] arrêt de shop-api-28 (SIGTERM, 0s avant SIGKILL)
+   |     shop-api-29 Up 9 seconds (healthy)
+   |     shop-api-30 Up 4 seconds (healthy)
+   | [ 13s] smoke test via Traefik (api.localhost) : {"status":"ready","checks":{"db":"ok","redis":"ok"}}
+   | [ 13s] rolling update terminé : sha-9cab478
+   commande terminée en 13s (code retour 0)
+   t= 13s  envoyées=100  ok=99  échecs=1  <<<
+   t= 17s  envoyées=100  ok=93  échecs=7  <<<
+   == 4999 requêtes en 50s vers http://127.0.0.1/health (Host: api.localhost), 100 req/s
+   == ÉCHECS : 8 (0.16 %) sur 2 seconde(s)
+        HTTP 502 : 2
+        timeout 2000ms : 6
+   == latence des succès : p50=2.5 ms  p99=5.6 ms  max=1079.3 ms
+RESUME {"sent":4999,"failures":8,"failingSeconds":2,"reasons":{"HTTP 502":2,"timeout 2000ms":6},"p99":5.6}
+
+== F1. Release cassée (port 3999, jamais healthy) en rolling update
+   $ ./deploy/rolling-update.sh
+   | [  0s] cible : preprod (ssh://deploy@localhost:2222), version sha-9cab478, 2 réplicas
+   | [  0s] fichiers de configuration synchronisés dans /srv/shop, .env et secrets/ lus sur le serveur
+   |   OK     signature vérifiée (clé deploy/cosign.pub) : registry.local:5000/shopapi:sha-9cab478@sha256:3b4e30aec4592614588870773ca1cd6cba4d7fb1d764502beebc7c2584553838
+   |   OK     signature vérifiée (clé deploy/cosign.pub) : registry.local:5000/shop-worker:sha-9cab478@sha256:483100fa42ef6ef3e71c44afeacd77b055b0762667bffbe582f421269afe81e3
+   | [  2s] images tirées sur le serveur
+   | [  9s] db, redis, traefik et worker à jour et healthy
+   | [ 10s] shop-api-31 démarré (registry.local:5000/shopapi:sha-9cab478@3b4e30aec459…), attente de healthy
+   |     {"level":30,"time":1793371686428,"pid":1,"hostname":"df7c8d60f576","port":"3999","msg":"shopapi démarré"}
+   | [ 55s] ÉCHEC : shop-api-31 pas healthy en 45s : retiré, shop-api-29 (healthy) continue de servir l'ancienne version
+   commande terminée en 55s (code retour 1)
+   == 6999 requêtes en 70s vers http://127.0.0.1/health (Host: api.localhost), 100 req/s
+   == ÉCHECS : 0 (0.00 %) sur 0 seconde(s)
+   == latence des succès : p50=2.3 ms  p99=6.7 ms  max=35.5 ms
+RESUME {"sent":6999,"failures":0,"failingSeconds":0,"reasons":{},"p99":6.7}
+
+== F2. Release cassée en déploiement naïf
+   $ docker compose --progress quiet --project-directory /srv/shop --env-file .ci/preprod.env -f compose.yml -f compose.prod.yml -f ../experiences/release-cassee.yml up -d --force-recreate api
+   | time="2026-10-30T15:49:07+01:00" level=warning msg="secret file shop_db_password does not exist"
+   | time="2026-10-30T15:49:07+01:00" level=warning msg="secret file shop_db_password does not exist"
+   commande terminée en 7s (code retour 0)
+   t=  6s  envoyées=100  ok=48  échecs=52  <<<
+   t=  7s  envoyées=100  ok=0  échecs=100  <<<
+   t=  8s  envoyées=100  ok=0  échecs=100  <<<
+   t=  9s  envoyées=100  ok=0  échecs=100  <<<
+   t= 10s  envoyées=100  ok=0  échecs=100  <<<
+   t= 11s  envoyées=100  ok=0  échecs=100  <<<
+   t= 12s  envoyées=100  ok=0  échecs=100  <<<
+   t= 13s  envoyées=100  ok=0  échecs=100  <<<
+   t= 14s  envoyées=100  ok=0  échecs=100  <<<
+   t= 15s  envoyées=100  ok=0  échecs=100  <<<
+   t= 16s  envoyées=100  ok=0  échecs=100  <<<
+   t= 17s  envoyées=100  ok=0  échecs=100  <<<
+   t= 18s  envoyées=100  ok=0  échecs=100  <<<
+   t= 19s  envoyées=100  ok=0  échecs=100  <<<
+   t= 20s  envoyées=100  ok=0  échecs=100  <<<
+   t= 21s  envoyées=100  ok=0  échecs=100  <<<
+   t= 22s  envoyées=100  ok=0  échecs=100  <<<
+   t= 23s  envoyées=100  ok=0  échecs=100  <<<
+   t= 24s  envoyées=100  ok=0  échecs=100  <<<
+   t= 25s  envoyées=100  ok=0  échecs=100  <<<
+   t= 26s  envoyées=100  ok=0  échecs=100  <<<
+   t= 27s  envoyées=100  ok=0  échecs=100  <<<
+   t= 28s  envoyées=100  ok=0  échecs=100  <<<
+   t= 29s  envoyées=100  ok=0  échecs=100  <<<
+   t= 30s  envoyées=100  ok=0  échecs=100  <<<
+   t= 31s  envoyées=100  ok=0  échecs=100  <<<
+   t= 32s  envoyées=100  ok=0  échecs=100  <<<
+   t= 33s  envoyées=100  ok=0  échecs=100  <<<
+   t= 34s  envoyées=100  ok=0  échecs=100  <<<
+   t= 35s  envoyées=100  ok=0  échecs=100  <<<
+   t= 36s  envoyées=100  ok=0  échecs=100  <<<
+   t= 37s  envoyées=100  ok=0  échecs=100  <<<
+   t= 38s  envoyées=100  ok=0  échecs=100  <<<
+   t= 39s  envoyées=100  ok=0  échecs=100  <<<
+   == 3999 requêtes en 40s vers http://127.0.0.1/health (Host: api.localhost), 100 req/s
+   == ÉCHECS : 3352 (83.82 %) sur 34 seconde(s)
+        HTTP 503 : 500
+        HTTP 404 : 2852
+   == latence des succès : p50=2.6 ms  p99=6.1 ms  max=10.6 ms
+RESUME {"sent":3999,"failures":3352,"failingSeconds":34,"reasons":{"HTTP 503":500,"HTTP 404":2852},"p99":6.1}
+
+== F3. Réparation : rolling update vers sha-9cab478
+   $ ./deploy/rolling-update.sh
+   | [  0s] cible : preprod (ssh://deploy@localhost:2222), version sha-9cab478, 2 réplicas
+   | [  1s] fichiers de configuration synchronisés dans /srv/shop, .env et secrets/ lus sur le serveur
+   |   OK     signature vérifiée (clé deploy/cosign.pub) : registry.local:5000/shopapi:sha-9cab478@sha256:3b4e30aec4592614588870773ca1cd6cba4d7fb1d764502beebc7c2584553838
+   |   OK     signature vérifiée (clé deploy/cosign.pub) : registry.local:5000/shop-worker:sha-9cab478@sha256:483100fa42ef6ef3e71c44afeacd77b055b0762667bffbe582f421269afe81e3
+   | [  6s] images tirées sur le serveur
+   | [  7s] db, redis, traefik et worker à jour et healthy
+   | [  8s] shop-api-31 démarré (registry.local:5000/shopapi:sha-9cab478@3b4e30aec459…), attente de healthy
+   | [  9s] shop-api-31 healthy, Traefik l'ajoute au load balancer
+   | [ 12s] arrêt de shop-api-29 (SIGTERM, 15s avant SIGKILL)
+   | [ 17s] shop-api-32 démarré (registry.local:5000/shopapi:sha-9cab478@3b4e30aec459…), attente de healthy
+   | [ 19s] shop-api-32 healthy, Traefik l'ajoute au load balancer
+   | [ 22s] arrêt de shop-api-30 (SIGTERM, 15s avant SIGKILL)
+   |     shop-api-31 Up 19 seconds (healthy)
+   |     shop-api-32 Up 9 seconds (healthy)
+   | [ 27s] smoke test via Traefik (api.localhost) : {"status":"ready","checks":{"db":"ok","redis":"ok"}}
+   | [ 27s] rolling update terminé : sha-9cab478
+   commande terminée en 27s (code retour 0)
+   t=  0s  envoyées=99  ok=0  échecs=99  <<<
+   t=  1s  envoyées=100  ok=0  échecs=100  <<<
+   t=  2s  envoyées=100  ok=0  échecs=100  <<<
+   t=  3s  envoyées=100  ok=0  échecs=100  <<<
+   t=  4s  envoyées=100  ok=0  échecs=100  <<<
+   t=  5s  envoyées=100  ok=0  échecs=100  <<<
+   t=  6s  envoyées=100  ok=0  échecs=100  <<<
+   t=  7s  envoyées=100  ok=0  échecs=100  <<<
+   t=  8s  envoyées=100  ok=0  échecs=100  <<<
+   t=  9s  envoyées=100  ok=0  échecs=100  <<<
+   t= 10s  envoyées=100  ok=0  échecs=100  <<<
+   t= 11s  envoyées=100  ok=0  échecs=100  <<<
+   t= 12s  envoyées=100  ok=0  échecs=100  <<<
+   t= 13s  envoyées=100  ok=0  échecs=100  <<<
+   t= 14s  envoyées=100  ok=91  échecs=9  <<<
+   == 5999 requêtes en 60s vers http://127.0.0.1/health (Host: api.localhost), 100 req/s
+   == ÉCHECS : 1408 (23.47 %) sur 15 seconde(s)
+        HTTP 404 : 1408
+   == latence des succès : p50=2.6 ms  p99=6.2 ms  max=44.5 ms
+RESUME {"sent":5999,"failures":1408,"failingSeconds":15,"reasons":{"HTTP 404":1408},"p99":6.2}
+

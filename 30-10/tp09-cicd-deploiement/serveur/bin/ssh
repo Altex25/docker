@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /usr/bin/ssh -F "$(cd "$(dirname "$0")/.." && pwd)/ssh_config" "$@"

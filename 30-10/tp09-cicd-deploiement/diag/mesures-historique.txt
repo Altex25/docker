@@ -1,0 +1,89 @@
+Mesures faites pendant la mise au point (preprod, 100 req/s sur /health via Traefik, timeout client 2 s).
+v1 = sha-6177fe9 (SIGTERM du TP01 : server.close() immédiat, healthcheck Traefik /ready toutes les 5 s)
+v2 = sha-9cab478 (drain 5 s au SIGTERM, healthcheck Traefik toutes les 1 s)
+v3 = sha-8cab045 (v2 + champ instance dans /)
+
+== Témoin : aucun déploiement (v1)
+   == 3999 requêtes en 40s vers http://127.0.0.1/health (Host: api.localhost), 100 req/s
+   == ÉCHECS : 0 (0.00 %) sur 0 seconde(s)
+   == latence des succès : p50=3.6 ms  p99=7.7 ms  max=17.3 ms
+
+== Naïf : compose up -d --force-recreate api (2 réplicas, v1)
+   commande terminée en 1s
+   t=  5s  envoyées=100  ok=47  échecs=53  <<<
+   t=  6s  envoyées=100  ok=0  échecs=100  <<<
+   t=  7s  envoyées=100  ok=37  échecs=63  <<<
+   == ÉCHECS : 216 (4.80 %) sur 3 seconde(s)
+        HTTP 502 : 3
+        HTTP 404 : 213
+   == latence des succès : p50=3.5 ms  p99=7.6 ms  max=1016.0 ms
+
+== Rolling update sans drain (v1 -> v1)
+   | [  5s] shop-api-3 démarré, attente de healthy
+   | [  6s] shop-api-3 healthy, Traefik l'ajoute au load balancer
+   | [  9s] arrêt de shop-api-1 (SIGTERM, 15s avant SIGKILL)
+   | [ 10s] shop-api-4 démarré, attente de healthy
+   | [ 11s] shop-api-4 healthy, Traefik l'ajoute au load balancer
+   | [ 14s] arrêt de shop-api-2 (SIGTERM, 15s avant SIGKILL)
+   | [ 14s] rolling update terminé : sha-6177fe9
+   t= 13s  envoyées=100  ok=99  échecs=1  <<<
+   t= 18s  envoyées=100  ok=91  échecs=9  <<<
+   == ÉCHECS : 10 (0.17 %) sur 2 seconde(s)
+        HTTP 502 : 2
+        timeout 2000ms : 8
+   == latence des succès : p50=3.3 ms  p99=6.9 ms  max=1091.6 ms
+
+== Pipeline main complet : v1 -> v2 (les labels Traefik changent : healthcheck.interval 5s -> 1s)
+   | [  6s] shop-api-5 démarré (sha-9cab478), attente de healthy
+   | [  7s] shop-api-5 healthy, Traefik l'ajoute au load balancer
+   | [ 10s] arrêt de shop-api-3 (SIGTERM, 15s avant SIGKILL)
+   | [ 11s] shop-api-6 démarré (sha-9cab478), attente de healthy
+   | [ 12s] shop-api-6 healthy, Traefik l'ajoute au load balancer
+   | [ 15s] arrêt de shop-api-4 (SIGTERM, 15s avant SIGKILL)
+   | [ 16s] rolling update terminé : sha-9cab478
+   t= 47s  envoyées=100  ok=41  échecs=59  <<<
+   t= 48s  envoyées=100  ok=0  échecs=100  <<<
+   t= 49s  envoyées=100  ok=0  échecs=100  <<<
+   t= 50s  envoyées=100  ok=0  échecs=100  <<<
+   t= 51s  envoyées=100  ok=0  échecs=100  <<<
+   t= 52s  envoyées=100  ok=0  échecs=100  <<<
+   t= 53s  envoyées=100  ok=0  échecs=100  <<<
+   t= 54s  envoyées=100  ok=24  échecs=76  <<<
+   == 14999 requêtes en 150s, 100 req/s
+   == ÉCHECS : 735 (4.90 %) sur 8 seconde(s)
+        HTTP 404 : 735
+   -> de l'arrivée du premier réplica v2 (labels 1s) au départ du dernier v1 (labels 5s), Traefik voit deux définitions
+      contradictoires du service api et n'en garde aucune : plus de routeur, 404.
+
+== Rolling update avec drain (v2 -> v2)
+   | [  4s] shop-api-7 démarré, attente de healthy
+   | [  5s] shop-api-7 healthy, Traefik l'ajoute au load balancer
+   | [  8s] arrêt de shop-api-5 (SIGTERM, 15s avant SIGKILL)
+   | [ 14s] shop-api-8 démarré, attente de healthy
+   | [ 15s] shop-api-8 healthy, Traefik l'ajoute au load balancer
+   | [ 18s] arrêt de shop-api-6 (SIGTERM, 15s avant SIGKILL)
+   | [ 23s] rolling update terminé : sha-9cab478
+   == 5999 requêtes en 60s, 100 req/s
+   == ÉCHECS : 0 (0.00 %) sur 0 seconde(s)
+   == latence des succès : p50=3.4 ms  p99=7.1 ms  max=31.3 ms
+
+== Pipeline main complet sous charge : v2 -> v3 (hadolint ... signature, vérification, rolling update)
+   | [58s] pipeline main terminé
+   == 11999 requêtes en 120s, 100 req/s
+   == ÉCHECS : 0 (0.00 %) sur 0 seconde(s)
+   == latence des succès : p50=2.8 ms  p99=6.7 ms  max=63.2 ms
+
+== Rollback v3 -> v2 (sha-9cab478)
+   | [  2s] images tirées sur le serveur
+   | [  7s] db, redis, traefik et worker à jour et healthy
+   | [  7s] shop-api-11 démarré (sha-9cab478), attente de healthy
+   | [  9s] shop-api-11 healthy, Traefik l'ajoute au load balancer
+   | [ 12s] arrêt de shop-api-10 (SIGTERM, 15s avant SIGKILL)
+   | [ 17s] shop-api-12 démarré (sha-9cab478), attente de healthy
+   | [ 18s] shop-api-12 healthy, Traefik l'ajoute au load balancer
+   | [ 21s] arrêt de shop-api-9 (SIGTERM, 15s avant SIGKILL)
+   | [ 27s] rolling update terminé : sha-9cab478
+   == 4499 requêtes en 45s, 100 req/s
+   == ÉCHECS : 0 (0.00 %) sur 0 seconde(s)
+   == latence des succès : p50=3.3 ms  p99=7.2 ms  max=20.7 ms
+   curl / x4 après : {"service":"shopapi","version":"sha-9cab478"}

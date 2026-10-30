@@ -1,0 +1,13 @@
+Port 22
+PermitRootLogin no
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PubkeyAuthentication yes
+AuthorizedKeysFile .ssh/authorized_keys
+AllowUsers deploy
+AllowTcpForwarding no
+X11Forwarding no
+PermitTunnel no
+MaxStartups 30:50:60
+MaxSessions 30
+Subsystem sftp internal-sftp
