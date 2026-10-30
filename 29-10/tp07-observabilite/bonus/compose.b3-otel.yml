@@ -1,0 +1,41 @@
+services:
+  otel-sdk:
+    image: node:20.20.2-alpine3.23@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+    restart: "no"
+    command:
+      - npm
+      - install
+      - --prefix
+      - /otel
+      - --no-audit
+      - --no-fund
+      - --omit=dev
+      - "@opentelemetry/auto-instrumentations-node@0.81.1"
+      - "@opentelemetry/api@1.9.0"
+    volumes:
+      - otel-sdk:/otel
+    networks:
+      - front
+
+  api:
+    environment:
+      NODE_OPTIONS: >-
+        --require /etc/shop/db-url.cjs
+        --require /otel/node_modules/@opentelemetry/auto-instrumentations-node/build/src/register.js
+      OTEL_SERVICE_NAME: shopapi
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=dev,service.namespace=shop
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      OTEL_NODE_ENABLED_INSTRUMENTATIONS: http,express,pg,ioredis,pino
+      OTEL_TRACES_SAMPLER: parentbased_always_on
+    volumes:
+      - otel-sdk:/otel:ro
+    depends_on:
+      otel-sdk:
+        condition: service_completed_successfully
+
+volumes:
+  otel-sdk: {}

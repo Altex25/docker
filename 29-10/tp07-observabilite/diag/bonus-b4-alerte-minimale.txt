@@ -1,0 +1,6 @@
+12:04:18 surveillance du projet shop : mémoire >= 90 % de la limite, CPU >= 80 %, processus attendus, redémarrages, OOM, santé
+12:05:29 ALERTE shop-api-1 : mémoire à 95 % de sa limite (153.6MiB / 160MiB)
+12:05:45 ALERTE shop-worker-1 : 1 redémarrage(s)
+12:05:52 ALERTE service redis : aucun processus redis-server (docker compose top)
+12:06:23 RÉSOLU mem-shop-api-1
+12:06:23 RÉSOLU proc-redis

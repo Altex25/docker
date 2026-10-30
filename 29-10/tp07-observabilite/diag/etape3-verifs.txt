@@ -1,0 +1,85 @@
+== Stack d'observabilité
+NAME                           STATUS                       PORTS
+observability-alertmanager-1   Up 29 minutes (healthy)      127.0.0.1:9093->9093/tcp
+observability-cadvisor-1       Up About an hour (healthy)   8080/tcp
+observability-grafana-1        Up About an hour (healthy)   127.0.0.1:3001->3000/tcp
+observability-loki-1           Up About an hour (healthy)   3100/tcp
+observability-prometheus-1     Up About an hour (healthy)   127.0.0.1:9090->9090/tcp
+observability-promtail-1       Up 36 minutes (healthy)      
+observability-webhook-echo-1   Up 29 minutes                8443/tcp, 127.0.0.1:8085->8080/tcp
+
+== Cibles Prometheus
+  api	172.22.0.4:3000	up	
+  cadvisor	cadvisor:8080	up	
+  observability	alertmanager:9093	up	
+  observability	grafana:3000	up	
+  observability	loki:3100	up	
+  observability	promtail:9080	up	
+  prometheus	localhost:9090	up	
+  worker	172.22.0.8:9100	up	
+
+== Découverte DNS : passage de l'API à 2 réplicas (configuration de base, sans port publié)
+
+$ docker exec observability-prometheus-1 nslookup -type=a api
+Name:	api Address: 172.22.0.4 Name:	api Address: 172.22.0.9
+Traefik : {"http://172.23.0.5:3000":"UP","http://172.23.0.6:3000":"UP"}
+  api	172.22.0.4:3000	up	
+  api	172.22.0.9:3000	up	
+compteur /products par réplica (Prometheus) avant 200 appels :
+après :
+  instance=172.22.0.9:3000  73
+  instance=172.22.0.4:3000  70
+retour à 1 réplica (configuration dev) : 1
+
+== Pourquoi pas docker_sd_configs dans Prometheus ?
+
+$ docker exec observability-prometheus-1 id
+uid=65534(nobody) gid=65534(nobody) groups=65534(nobody)
+[code retour 0]
+
+$ colima ssh -- ls -l /var/run/docker.sock
+srw-rw---- 1 root docker 0 Oct 26 12:35 /var/run/docker.sock
+Prometheus (nobody) avec la socket montée :
+  msg="Unable to refresh target groups" err="error while listing containers: permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock: Get \"http://%2Fvar%2Frun%2Fdocker.sock/v1.46/containers/json\": dial unix /var/r
+
+== Labels de Loki (Promtail docker_sd_configs)
+  project : avis-stades, incident, observability, shop, shop-registry, shop-scan, shopdata, tp07
+  service : adminer, alertmanager, api, b1-demo, backup, cadvisor, db, fluent-bit, front, garage, grafana, jaeger, loki, mailpit, mirror, otel-sdk, postgres, prometheus, promtail, redis, registry, renderer, traefik, trivy, webhook-echo, worker
+  severity : error, info, unknown
+  level : 30, 50, ERROR, INFO
+  status_class : 2xx, 4xx, 5xx
+
+== Requêtes du sujet
+{service="api"} | json | level="50"
+  level=50 erreur non gérée : insert or update on table "orders" violates foreign key constraint "orders_product_id_fkey"
+  level=50 erreur non gérée : insert or update on table "orders" violates foreign key constraint "orders_product_id_fkey"
+  level=50 erreur non gérée : insert or update on table "orders" violates foreign key constraint "orders_product_id_fkey"
+{service="worker"} |= "rejected"
+  {"ts":"2026-10-30 11:09:19,658","level":"INFO","msg":"commande 1793358559643 -> rejected"}
+  {"ts":"2026-10-30 11:09:19,655","level":"INFO","msg":"commande 1793358559648 -> rejected"}
+  {"ts":"2026-10-30 11:09:19,651","level":"INFO","msg":"commande 1793358559635 -> rejected"}
+sum(rate(http_request_duration_seconds_count[1m])) by (status)
+  status=200  3.3403
+  status=201  0.8200000000000001
+  status=500  0.14
+  status=404  0
+
+== Grafana provisionné par fichiers
+datasources : Loki (loki, uid=loki, readOnly=true) ; Prometheus (prometheus, uid=prometheus, readOnly=true)
+  santé prometheus : OK - Successfully queried the Prometheus API.
+  santé loki : OK - Data source successfully connected.
+dashboards : Shop SAS — vue d'ensemble (uid=shop-overview, dossier=Shop SAS)
+provisionné : provisioned=true fichier=shop-overview.json panneaux=22
+via Traefik : 200
+
+== Règles d'alerte chargées
+  shop-alerts	alerting	ApiDown	ok	pending
+  shop-alerts	alerting	WorkerDown	ok	inactive
+  shop-alerts	alerting	ApiHigh5xxRate	ok	inactive
+  shop-alerts	alerting	ApiHighLatencyP95	ok	inactive
+  shop-alerts	alerting	ContainerRestarting	ok	firing
+  shop-alerts	alerting	ContainerOomKilled	ok	inactive
+  shop-alerts	alerting	ContainerMemoryNearLimit	ok	inactive
+  shop-recording	recording	job:http_requests:rate1m	ok	-
+  shop-recording	recording	job:http_5xx_ratio:rate2m	ok	-
+  shop-recording	recording	job:http_latency_p95:rate2m	ok	-

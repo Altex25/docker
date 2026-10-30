@@ -1,0 +1,31 @@
+== 11:13:30 injection : 2 connexions fermées
+panne : mot de passe du rôle shop changé côté base (le secret des clients n'a pas suivi)
+
+== Ce que montre Grafana (11:15:30, 120 s après l'injection)
+  alertes :
+    firing  ApiDown  API injoignable (172.22.0.4:3000)
+    firing  ContainerRestarting  shop-redis-1 a redémarré 2 fois en 10 min
+  cibles Prometheus en échec :
+    instance=172.22.0.4:3000,job=api,project=shop,service=api  0
+  réponses API par statut (req/s) :
+  réponses Traefik 5xx sur 2 min (Loki) :
+    2xx  2
+    4xx  15394
+    5xx  10344
+  conteneurs du projet shop vus par cAdvisor dans les 30 dernières secondes :
+    adminer, api, backup, db, redis, traefik, worker
+  mémoire de l'API (working set / limite) :
+    working set 28.734 Mio, limite 0 Mio (0 = aucune)
+  OOM kills sur 5 min :
+  logs d'erreur (3 dernières minutes) :
+    [api]           error: [Function: reportStreamError],
+    [api]         _closeAfterHandlingError: false,
+    [api]         _hadError: false,
+    [api]         error: [Function: bound _handleErrorEvent],
+    [api]         errorMessage: [Function: bound _handleErrorMessage],
+    [api] Failed running 'src/server.js'
+  dashboard Grafana -> captures/correlation-db-password.png (HTTP 200, 607540 octets)
+
+== Vérification avec docker
+
+== 11:15:34 restauré : adminer=healthy api=healthy backup=healthy db=healthy redis=healthy traefik=healthy worker=healthy

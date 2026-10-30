@@ -1,0 +1,60 @@
+== Logs JSON structurés (pino)
+
+$ docker logs --since 5m --timestamps shop-api-1 | jq
+{"level":30,"time":1793348182041,"msg":"request completed","method":"GET","url":"/health","status":200,"responseTime":1}
+
+$ docker inspect shop-api-1 --format {{json .HostConfig.LogConfig}}
+{"Type":"json-file","Config":{"max-file":"3","max-size":"10m"}}
+[code retour 0]
+
+$ docker inspect shop-api-1 --format {{.LogPath}}
+/var/lib/docker/containers/9f07b0d4792c911b07699908b0227ab8a0a6393a2cc6e1e22416fa0956cab459/9f07b0d4792c911b07699908b0227ab8a0a6393a2cc6e1e22416fa0956cab459-json.log
+[code retour 0]
+
+$ sudo ls -la /var/lib/docker/containers/9f07b0d4792c911b07699908b0227ab8a0a6393a2cc6e1e22416fa0956cab459/
+total 8856
+drwx--x---  4 root root    4096 Oct 29 10:23 .
+drwx--x--- 30 root root    4096 Oct 30 09:16 ..
+-rw-r-----  1 root root 9017320 Oct 30 09:16 9f07b0d4792c911b07699908b0227ab8a0a6393a2cc6e1e22416fa0956cab459-json.log
+drwx------  2 root root    4096 Oct 29 10:23 checkpoints
+-rw-------  1 root root    7108 Oct 29 10:23 config.v2.json
+-rw-------  1 root root    2077 Oct 29 10:23 hostconfig.json
+-rw-r--r--  1 root root      13 Oct 29 10:23 hostname
+-rw-r--r--  1 root root     196 Oct 29 10:23 hosts
+drwx--x---  2 root root    4096 Oct 29 10:23 mounts
+-rw-r--r--  1 root root     311 Oct 29 10:23 resolv.conf
+-rw-r--r--  1 root root      71 Oct 29 10:23 resolv.conf.hash
+
+format brut d'une ligne du fichier json-file :
+{"log":"{\"level\":30,\"time\":1793348182041,\"pid\":13,\"hostname\":\"9f07b0d4792c\",\"req\":{\"id\":13644,\"method\":\"GET\",\"url\":\"/health\",\"query\":{},\"params\":{},\"headers\":{\"host\":\"127.0.0.1:3000\",\"use
+
+== Driver none
+
+$ docker run --rm --log-driver none alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc echo pas loggé
+pas loggé
+[code retour 0]
+
+$ docker logs e08064da4d0de0b90151d224b76d177da256c5f117b88c1349de257a5d2c2a27
+Error response from daemon: configured logging driver does not support reading
+[code retour 1]
+
+== Sans max-size : 2 000 000 lignes (130 Mo de texte) en quelques secondes
+tp07-nolimit  json-file {}                     disque : 271768211 octets
+tp07-limit    json-file {"max-file":"3","max-size":"1m"} disque : 2747507 octets
+tp07-local    local {"max-file":"3","max-size":"1m"} disque : 1068015 octets
+-rw-r-----  1 root root  747371 Oct 30 09:16 35f97ff412b58cab82a3b1a2f7c6335edb30a429c211509fae6a3d735a181166-json.log
+-rw-r-----  1 root root 1000106 Oct 30 09:16 35f97ff412b58cab82a3b1a2f7c6335edb30a429c211509fae6a3d735a181166-json.log.1
+-rw-r-----  1 root root 1000030 Oct 30 09:16 35f97ff412b58cab82a3b1a2f7c6335edb30a429c211509fae6a3d735a181166-json.log.2
+total 1052
+drwx------ 2 root root   4096 Oct 30 09:16 .
+drwx--x--- 5 root root   4096 Oct 30 09:16 ..
+-rw-r----- 1 root root 994635 Oct 30 09:16 container.log
+-rw-r----- 1 root root  36689 Oct 30 09:16 container.log.1.gz
+-rw-r----- 1 root root  36691 Oct 30 09:16 container.log.2.gz
+lignes encore lisibles par docker logs : nolimit=2000000 limit=20219 local=32201
+
+== Mode blocking vs non-blocking (max-buffer-size=4k), 300 000 lignes
+tp07-blocking     lignes conservées : 300000 / 300000   durée : 0.44 s
+tp07-nonblocking  lignes conservées :  11212 / 300000   durée : 0.30 s
+
+== conteneurs tp07-* supprimés

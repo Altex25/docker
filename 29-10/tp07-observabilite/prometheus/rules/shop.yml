@@ -1,0 +1,79 @@
+groups:
+  - name: shop-recording
+    rules:
+      - record: job:http_requests:rate1m
+        expr: sum by (job, status) (rate(http_request_duration_seconds_count{job="api"}[1m]))
+      - record: job:http_5xx_ratio:rate2m
+        expr: |
+          sum by (job) (rate(http_request_duration_seconds_count{job="api", status=~"5.."}[2m]))
+            /
+          sum by (job) (rate(http_request_duration_seconds_count{job="api"}[2m]))
+      - record: job:http_latency_p95:rate2m
+        expr: |
+          histogram_quantile(0.95,
+            sum by (job, le) (rate(http_request_duration_seconds_bucket{job="api", route!~"/health|/ready|/metrics"}[2m])))
+
+  - name: shop-alerts
+    rules:
+      - alert: ApiDown
+        expr: up{job="api"} == 0 or absent(up{job="api"})
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "API injoignable ({{ with $labels.instance }}{{ . }}{{ else }}aucun réplica découvert par DNS{{ end }})"
+          description: "Prometheus n'arrive plus à scraper /metrics de l'API depuis 30 s (ou aucun réplica n'est découvert par DNS)."
+
+      - alert: WorkerDown
+        expr: up{job="worker"} == 0 or absent(up{job="worker"})
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Worker injoignable ({{ with $labels.instance }}{{ . }}{{ else }}aucune cible découverte par DNS{{ end }})"
+          description: "Les commandes ne sont plus traitées : /metrics du worker ne répond plus depuis 30 s."
+
+      - alert: ApiHigh5xxRate
+        expr: job:http_5xx_ratio:rate2m > 0.05
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Plus de 5 % de réponses 5xx sur l'API ({{ $value | humanizePercentage }})"
+          description: "Taux de 5xx sur 2 min au-dessus de 5 % depuis 1 min."
+
+      - alert: ApiHighLatencyP95
+        expr: job:http_latency_p95:rate2m > 0.5
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "p95 de l'API au-dessus de 500 ms ({{ $value | humanizeDuration }})"
+          description: "Latence p95 hors /health, /ready et /metrics, calculée sur 2 min."
+
+      - alert: ContainerRestarting
+        expr: changes(container_start_time_seconds{name!=""}[10m]) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.name }} a redémarré {{ $value }} fois en 10 min"
+          description: "Service {{ $labels.service }} du projet {{ $labels.project }}."
+
+      - alert: ContainerOomKilled
+        expr: increase(container_oom_events_total{name!=""}[10m]) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.name }} : OOM kill dans les 10 dernières minutes"
+
+      - alert: ContainerMemoryNearLimit
+        expr: |
+          container_memory_working_set_bytes{name!=""}
+            / (container_spec_memory_limit_bytes{name!=""} > 0)
+          > 0.9
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.name }} utilise {{ $value | humanizePercentage }} de sa limite mémoire"
+          description: "Working set au-dessus de 90 % de la limite depuis 30 s."

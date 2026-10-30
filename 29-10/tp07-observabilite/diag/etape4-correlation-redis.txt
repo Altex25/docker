@@ -1,0 +1,32 @@
+== 11:33:13 injection : panne : Redis arrêté
+
+== Ce que montre Grafana (11:35:14, 120 s après l'injection)
+  alertes :
+    firing  ApiHigh5xxRate  Plus de 5 % de réponses 5xx sur l'API (30.64%)
+    firing  ContainerOomKilled  shop-api-1 : OOM kill dans les 10 dernières minutes
+  cibles Prometheus en échec :
+  réponses API par statut (req/s) :
+    status=200  0.2
+    status=201  0
+    status=503  0.08
+  réponses Traefik 5xx sur 2 min (Loki) :
+    2xx  7
+    5xx  24873
+  conteneurs du projet shop vus par cAdvisor dans les 30 dernières secondes :
+    adminer, api, backup, db, traefik, worker
+  mémoire de l'API (working set / limite) :
+    working set 40.476 Mio, limite 0 Mio (0 = aucune)
+  OOM kills sur 5 min :
+  logs applicatifs en erreur (JSON, severity=error|fatal) :
+    [worker] erreur: Error -3 connecting to redis:6379. Temporary failure in name resolution. 
+  sorties non JSON des applications (severity=unknown : stderr brut, crash) :
+    [api]     at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)
+    [api] [ioredis] Unhandled error event: Error: getaddrinfo ENOTFOUND redis
+  logs PostgreSQL / Redis en erreur :
+  dashboard Grafana -> captures/correlation-redis.png (HTTP 200, 704794 octets)
+
+== Vérification avec docker
+shop-redis-1 Exited (0) 2 minutes ago
+  arrêté à 2026-10-30T10:33:14.116226249Z, code 0, politique unless-stopped (un docker stop n est pas relancé)
+
+== 11:35:19 restauré : adminer=healthy api=healthy backup=healthy db=healthy redis=healthy traefik=healthy worker=healthy

@@ -1,0 +1,14 @@
+services:
+  fluent-bit:
+    image: fluent/fluent-bit:3.2.10@sha256:d6dec000c4929a439562525728c708f6e99800d7ddc82efd6aa4f45f3a20b562
+    restart: unless-stopped
+    command: ["/fluent-bit/bin/fluent-bit", "-c", "/fluent-bit/etc/tp07.conf"]
+    volumes:
+      - ./bonus/b1-fluentbit/fluent-bit.conf:/fluent-bit/etc/tp07.conf:ro
+    ports:
+      - "127.0.0.1:24224:24224"
+    networks:
+      - obs
+    depends_on:
+      loki:
+        condition: service_healthy

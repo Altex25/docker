@@ -1,0 +1,29 @@
+global:
+  resolve_timeout: 2m
+
+route:
+  receiver: webhook-echo
+  group_by: [alertname, service]
+  group_wait: 10s
+  group_interval: 30s
+  repeat_interval: 1h
+  routes:
+    - matchers:
+        - severity = "critical"
+      receiver: webhook-echo
+      group_wait: 0s
+      continue: false
+
+inhibit_rules:
+  - source_matchers:
+      - alertname = "ApiDown"
+    target_matchers:
+      - alertname =~ "ApiHigh5xxRate|ApiHighLatencyP95"
+    equal: [job]
+
+receivers:
+  - name: webhook-echo
+    webhook_configs:
+      - url: http://webhook-echo:8080/alertmanager
+        send_resolved: true
+        max_alerts: 20

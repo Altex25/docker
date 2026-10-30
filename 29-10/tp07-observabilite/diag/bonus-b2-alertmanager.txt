@@ -1,0 +1,43 @@
+== Alertmanager et webhook d'écho
+ Container observability-alertmanager-1 Healthy 
+  Prometheus -> Alertmanager : http://alertmanager:9093/api/v2/alerts
+  route : route: receiver: webhook-echo group_by: - alertname 
+
+== 11:54:30 panne : arrêt du worker (scrape en échec, pas de restart policy pour un stop)
+  alerte : ContainerRestarting active, WorkerDown active
+  notifications reçues par le webhook :
+    {"status":"firing","groupLabels":{"alertname":"WorkerDown"},"alertes":["WorkerDown  firing"]}
+
+== 11:55:42 résolution : redémarrage du worker
+  notifications reçues par le webhook :
+    {"status":"firing","groupLabels":{"alertname":"WorkerDown"},"alertes":["WorkerDown  firing"]}
+    {"status":"resolved","groupLabels":{"alertname":"WorkerDown"},"alertes":["WorkerDown  resolved"]}
+
+== Exemple de charge utile complète (premier envoi firing)
+{
+  "receiver": "webhook-echo",
+  "status": "firing",
+  "groupLabels": {
+    "alertname": "WorkerDown"
+  },
+  "externalURL": "http://localhost:9093",
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "WorkerDown",
+        "severity": "warning",
+        "job": "worker",
+        "instance": null,
+        "service": null,
+        "project": null
+      },
+      "annotations": {
+        "description": "Les commandes ne sont plus traitées : /metrics du worker ne répond plus depuis 30 s.",
+        "summary": "Worker injoignable (aucune cible découverte par DNS)"
+      },
+      "startsAt": "2026-10-30T10:55:31.782Z",
+      "generatorURL": "http://localhost:9090/graph?g0.expr=up%7Bjob%3D%22worker%22%7D+%3D%3D+0+or+absent%28up%7Bjob%3D%22worker%22%7D%29&g0.tab=1"
+    }
+  ]
+}

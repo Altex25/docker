@@ -1,0 +1,45 @@
+== fluent-bit (input forward :24224 -> Loki)
+ Container observability-fluent-bit-1 Healthy 
+
+== Conteneur avec --log-driver fluentd
+
+$ docker inspect tp07-b1-demo --format {{json .HostConfig.LogConfig}}
+{"Type":"fluentd","Config":{"fluentd-address":"127.0.0.1:24224","labels":"com.docker.compose.service,com.docker.compose.project","tag":"docker.{{.Name}}"}}
+[code retour 0]
+
+docker logs fonctionne encore grâce au cache local (dual logging, Docker >= 20.10) :
+  {"level":"ERROR","msg":"erreur de démonstration"}
+  {"level":"INFO","msg":"ligne 1 envoyée par le driver fluentd"}
+  {"level":"INFO","msg":"ligne 2 envoyée par le driver fluentd"}
+  {"level":"INFO","msg":"ligne 3 envoyée par le driver fluentd"}
+  {"level":"INFO","msg":"ligne 4 envoyée par le driver fluentd"}
+  {"level":"INFO","msg":"ligne 5 envoyée par le driver fluentd"}
+
+dans Loki, {job="fluent-bit", container_name="/tp07-b1-demo"} :
+  labels={"container_name":"/tp07-b1-demo","detected_level":"error","project":"tp07","service":"b1-demo","service_name":"b1-demo","source":"stderr"}
+    {"level":"ERROR","msg":"erreur de démonstration"}
+  labels={"container_name":"/tp07-b1-demo","detected_level":"info","project":"tp07","service":"b1-demo","service_name":"b1-demo","source":"stdout"}
+    {"level":"INFO","msg":"ligne 5 envoyée par le driver fluentd"}
+    {"level":"INFO","msg":"ligne 4 envoyée par le driver fluentd"}
+    {"level":"INFO","msg":"ligne 3 envoyée par le driver fluentd"}
+    {"level":"INFO","msg":"ligne 2 envoyée par le driver fluentd"}
+    {"level":"INFO","msg":"ligne 1 envoyée par le driver fluentd"}
+
+== Panne du collecteur : fluent-bit arrêté
+ Container observability-fluent-bit-1 Stopped 
+
+$ docker run --rm --log-driver fluentd --log-opt fluentd-address=127.0.0.1:24224 --log-opt tag=docker.{{.Name}} --log-opt labels=com.docker.compose.service,com.docker.compose.project --label com.docker.compose.service=b1-demo --label com.docker.compose.project=tp07 alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc echo démarrage impossible ?
+docker: Error response from daemon: failed to create task for container: failed to initialize logging driver: dial tcp 127.0.0.1:24224: connect: connection refused
+
+Run 'docker run --help' for more information
+[code retour 125]
+
+avec fluentd-async=true, le conteneur démarre et le driver bufferise en mémoire :
+  état=running
+ Container observability-fluent-bit-1 Started 
+  dans Loki après redémarrage du collecteur : écrit pendant la panne du collecteur
+
+== Comparaison avec Promtail : la même ligne est-elle aussi dans Loki via Promtail ?
+  {container="tp07-b1-demo"} (Promtail lit /containers/{id}/logs via la socket) : 2 flux
+
+== conteneurs tp07-b1-* et fluent-bit supprimés

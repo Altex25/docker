@@ -1,0 +1,60 @@
+== Jaeger (OTLP 4317/4318, UI 16686) dans le projet observability
+ Container observability-jaeger-1 Started 
+
+== API instrumentée sans toucher au code ni à l'image
+  npm : npm notice To update run: npm install -g npm@12.2.1
+  npm : npm notice
+ Container shop-api-1 Healthy 
+
+$ docker inspect shop-api-1 --format {{.Config.Image}}
+shop/shopapi:dev
+[code retour 0]
+  NODE_OPTIONS=--require /etc/shop/db-url.cjs --require /otel/node_modules/@opentelemetry/auto-instrumentations-node/build/src/register.js
+  OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+  OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+  OTEL_LOGS_EXPORTER=none
+  OTEL_METRICS_EXPORTER=none
+  OTEL_NODE_ENABLED_INSTRUMENTATIONS=http,express,pg,ioredis,pino
+  OTEL_RESOURCE_ATTRIBUTES=deployment.environment=dev,service.namespace=shop
+  OTEL_SERVICE_NAME=shopapi
+  OTEL_TRACES_EXPORTER=otlp
+  OTEL_TRACES_SAMPLER=parentbased_always_on
+
+== Trafic
+   132 200 GET /products
+    35 201 POST /orders
+    17 201 POST /orders (quantité > 100)
+    11 500 POST /orders (produit inconnu)
+     5 404 GET /inconnu
+  200 requêtes en 1 s (concurrence 20) vers http://localhost (Host: api.localhost)
+
+== Traces reçues par Jaeger
+  services : shopapi, jaeger
+  opérations shopapi : GET | GET /health | GET /metrics | GET /products | GET /ready | POST /orders | get | lpush | middleware - <anonymous> | middleware - expressInit | middleware - jsonParser | middleware - query | middleware - result | pg-pool.connect | pg.connect | pg.query:INSERT shop | pg.query:SELECT shop | ping | request handler - /health | request handler - /metrics | request handler - /orders | request handler
+  trace POST /orders (201) 4edc41c81efbe78af380cd47d8a5366b :
+    POST /orders  61 ms  [shopapi]
+    request handler - /orders  61 ms  [shopapi]
+    pg-pool.connect  55 ms  [shopapi]
+    middleware - jsonParser  0 ms  [shopapi]
+    middleware - result  0 ms  [shopapi]
+    middleware - expressInit  0 ms  [shopapi]
+    middleware - query  0 ms  [shopapi]
+    middleware - <anonymous>  0 ms  [shopapi]
+    pg.connect  55 ms  [shopapi]
+    pg.query:INSERT shop  3 ms  [shopapi]
+    lpush  0 ms  [shopapi]
+
+  trace POST /orders en erreur 500 ea3c05d7e07cf2df536f8eb2bbdafe11 :
+    POST /orders  14 ms  http.response.status_code=500  otel.status_code=ERROR
+    request handler - /orders  11 ms  otel.status_code=ERROR  otel.status_description=insert or update on table "orders" violates foreign key constraint "orders_product_id_fkey"
+    pg.query:INSERT shop  11 ms  db.query.text=INSERT INTO orders(product_id, quantity, status) VALUES ($1,$2,$3)  otel.status_code=ERROR  otel.status_description=insert or update on table "orders" violates foreign key constraint "orders_product_id_fkey"
+
+  corrélation logs ↔ traces : le log pino de cette requête contient trace_id :
+    {"level":30,"msg":"request completed","trace_id":"4edc41c81efbe78af380cd47d8a5366b","span_id":"3f85b5519512e832","url":"/orders","status":201}
+
+== Capture de la trace dans l'UI Jaeger
+  captures/b3-trace-jaeger.png (87154 octets)
+
+== Retour à l'API sans instrumentation
+ Container shop-api-1 Healthy 
+  NODE_OPTIONS=--require /etc/shop/db-url.cjs

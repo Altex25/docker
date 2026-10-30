@@ -1,0 +1,39 @@
+== 11:29:21 injection : panne : 600ms de latence réseau ajoutés sur shop-db-1 (tc netem)
+
+== Ce que montre Grafana (11:31:24, 120 s après l'injection)
+  alertes :
+    firing  ApiHighLatencyP95  p95 de l'API au-dessus de 500 ms (972.1ms)
+    firing  ContainerOomKilled  shop-api-1 : OOM kill dans les 10 dernières minutes
+  cibles Prometheus en échec :
+  réponses API par statut (req/s) :
+    status=200  6.2
+    status=404  0.16
+    status=201  1.5
+    status=500  0.4
+  réponses Traefik 5xx sur 2 min (Loki) :
+    2xx  857
+    4xx  40
+    5xx  3816
+  conteneurs du projet shop vus par cAdvisor dans les 30 dernières secondes :
+    adminer, api, backup, db, redis, traefik, worker
+  mémoire de l'API (working set / limite) :
+    working set 53.425 Mio, limite 0 Mio (0 = aucune)
+  OOM kills sur 5 min :
+    name=shop-api-1  1.0714285714285714
+  logs applicatifs en erreur (JSON, severity=error|fatal) :
+    [api] erreur non gérée insert or update on table "orders" violates foreign key constraint "orders_product_id_fkey"
+  sorties non JSON des applications (severity=unknown : stderr brut, crash) :
+  logs PostgreSQL / Redis en erreur :
+    [db] 2026-10-30 10:31:16.546 UTC [2414] ERROR:  insert or update on table "orders" violates foreign key constraint "orders_product_id_fkey"
+    [db] 2026-10-30 10:31:20.231 UTC [2424] ERROR:  insert or update on table "orders" violates foreign key constraint "orders_product_id_fkey"
+    [db] 2026-10-30 10:31:23.421 UTC [2426] ERROR:  insert or update on table "orders" violates foreign key constraint "orders_product_id_fkey"
+  dashboard Grafana -> captures/correlation-latence-db.png (HTTP 200, 695851 octets)
+
+== Vérification avec docker
+  qdisc netem 800f: dev eth0 root refcnt 3 limit 1000 delay 600ms seed 2348547149547981179
+  qdisc netem 8010: dev eth1 root refcnt 3 limit 1000 delay 600ms seed 10296562279291310244
+  connexion TCP api -> db : 610 ms
+  connexion TCP api -> db : 611 ms
+  connexion TCP api -> db : 616 ms
+
+== 11:31:32 restauré : adminer=healthy api=healthy backup=healthy db=healthy redis=healthy traefik=healthy worker=healthy

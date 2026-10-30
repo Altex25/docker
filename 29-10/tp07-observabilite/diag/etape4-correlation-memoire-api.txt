@@ -1,0 +1,38 @@
+== 11:35:54 injection : panne : limite mémoire de shop-api-1 abaissée à 40m à chaud
+
+== Ce que montre Grafana (11:38:02, 120 s après l'injection)
+  alertes :
+    firing  ApiDown  API injoignable (172.22.0.4:3000)
+    firing  ContainerOomKilled  shop-api-1 : OOM kill dans les 10 dernières minutes
+    firing  ContainerRestarting  shop-redis-1 a redémarré 1 fois en 10 min
+  cibles Prometheus en échec :
+    instance=172.22.0.4:3000,job=api,project=shop,service=api  0
+  réponses API par statut (req/s) :
+  réponses Traefik 5xx sur 2 min (Loki) :
+    4xx  15823
+    5xx  8906
+  conteneurs du projet shop vus par cAdvisor dans les 30 dernières secondes :
+    adminer, api, backup, db, redis, traefik, worker
+  mémoire de l'API (working set / limite) :
+    working set 10.257 Mio, limite 40 Mio (0 = aucune)
+  OOM kills sur 5 min :
+    name=shop-api-1  1.0625
+  logs applicatifs en erreur (JSON, severity=error|fatal) :
+    [api] erreur non gérée insert or update on table "orders" violates foreign key constraint "orders_product_id_fkey"
+  sorties non JSON des applications (severity=unknown : stderr brut, crash) :
+    [api]     at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)
+    [api] Failed running 'src/server.js'
+    [api] [ioredis] Unhandled error event: Error: getaddrinfo ENOTFOUND redis
+  logs PostgreSQL / Redis en erreur :
+    [db] 2026-10-30 10:35:55.557 UTC [2740] ERROR:  insert or update on table "orders" violates foreign key constraint "orders_product_id_fkey"
+    [db] 2026-10-30 10:35:55.688 UTC [2742] ERROR:  insert or update on table "orders" violates foreign key constraint "orders_product_id_fkey"
+    [db] 2026-10-30 10:35:55.775 UTC [2744] ERROR:  insert or update on table "orders" violates foreign key constraint "orders_product_id_fkey"
+  dashboard Grafana -> captures/correlation-memoire-api.png (HTTP 200, 693258 octets)
+
+== Vérification avec docker
+  OOMKilled=true état=running RestartCount=0 limite=41943040
+  PID                 RSS                 COMMAND
+  2191455             7480                node --watch src/server.js
+  Failed running 'src/server.js'
+
+== 11:38:06 restauré : adminer=healthy api=healthy backup=healthy db=healthy redis=healthy traefik=healthy worker=healthy

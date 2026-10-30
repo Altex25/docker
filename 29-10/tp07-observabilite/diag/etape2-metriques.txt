@@ -1,0 +1,122 @@
+== docker stats
+
+$ docker stats --no-stream --format table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.NetIO}}\t{{.BlockIO}}\t{{.PIDs}} 7b237ba3ae66 2da611956178 0dc52416d0cb 5b4dba31a2c3 125012ba2ece 42592df1a2c4 9e08d72ee662
+NAME             CPU %     MEM USAGE / LIMIT     MEM %     NET I/O           BLOCK I/O         PIDS
+shop-api-1       1.27%     24.5MiB / 1.914GiB    1.25%     9.75kB / 3.34kB   0B / 0B           17
+shop-backup-1    0.00%     6.695MiB / 1.914GiB   0.34%     9.83kB / 126B     7.34MB / 0B       7
+shop-adminer-1   2.95%     24.61MiB / 1.914GiB   1.26%     303kB / 11.7kB    13.3MB / 56.4MB   1
+shop-traefik-1   0.03%     34.96MiB / 1.914GiB   1.78%     102MB / 98.4MB    34.5MB / 0B       12
+shop-worker-1    0.06%     26.46MiB / 1.914GiB   1.35%     9.38MB / 8.12MB   16.1MB / 0B       2
+shop-db-1        0.02%     29.36MiB / 1.914GiB   1.50%     12.7MB / 14.8MB   11.7MB / 190MB    8
+shop-redis-1     0.64%     3.867MiB / 1.914GiB   0.20%     13MB / 19.7MB     3.41MB / 3.65MB   6
+[code retour 0]
+
+== docker system df -v (extrait)
+TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
+Images          125       24        23.56GB   10.5GB (44%)
+Containers      28        21        58.41MB   274.4kB (0%)
+Local Volumes   46        16        9.818GB   4.572GB (46%)
+Build Cache     318       0         9.127GB   5.149GB
+volume shop_redisdata   liens=1 taille=2.716MB
+volume shop_pgdata      liens=1 taille=66.99MB
+conteneur shop-api-1 couche RW=20.5kB (virtual 160MB)
+conteneur shop-backup-1 couche RW=16.4kB (virtual 298MB)
+conteneur shop-adminer-1 couche RW=56.8MB (virtual 328MB)
+conteneur shop-traefik-1 couche RW=8.19kB (virtual 179MB)
+conteneur shop-worker-1 couche RW=24.6kB (virtual 185MB)
+conteneur shop-db-1 couche RW=32.8kB (virtual 267MB)
+conteneur shop-redis-1 couche RW=4.1kB (virtual 41.5MB)
+
+== docker events --filter type=container --since 10m (extrait)
+09:26:50 shop-api-1 oom
+09:26:50 shop-api-1 die
+09:26:54 4a2df04bcf1f_shop-api-1 create
+09:26:54 shop-api-1 stop
+09:26:55 shop-api-1 destroy
+09:26:55 shop-api-1 rename
+09:26:55 shop-api-1 start
+09:26:56 shop-api-1 health_status: healthy
+
+== A. dev (node --watch) limité à 64 Mo
+commande : ["node","--watch","src/server.js"]   au repos : 32.78MiB / 64MiB (51.21%)
+  4242 200 GET /products
+   922 201 POST /orders
+   386 201 POST /orders (quantité > 100)
+   229 404 GET /inconnu
+   221 500 POST /orders (produit inconnu)
+  6000 requêtes en 16 s (concurrence 200) vers http://localhost (Host: api.localhost)
+pendant la charge (docker events) :
+  aucun événement oom/die/start
+état : OOMKilled=false RestartCount=0 état=running exit=0 limite=67108864
+cgroup memory.events : max 0 oom_kill 0
+
+== B. dev (node --watch) limité à 40 Mo
+commande : ["node","--watch","src/server.js"]   au repos : 32.26MiB / 40MiB (80.64%)
+  2661 503 GET /products
+  1128 502 GET /products
+   569 503 POST /orders
+   424 200 GET /products
+   245 502 POST /orders
+   243 503 POST /orders (quantité > 100)
+   158 503 GET /inconnu
+   141 503 POST /orders (produit inconnu)
+   128 502 POST /orders (quantité > 100)
+    80 201 POST /orders
+    77 502 GET /inconnu
+    64 502 POST /orders (produit inconnu)
+    36 201 POST /orders (quantité > 100)
+    26 404 GET /inconnu
+    20 500 POST /orders (produit inconnu)
+  6000 requêtes en 12 s (concurrence 200) vers http://localhost (Host: api.localhost)
+pendant la charge (docker events) :
+  09:27:47 oom exitCode=
+état : OOMKilled=true RestartCount=0 état=running exit=0 limite=41943040
+cgroup memory.events : max 24 oom_kill 1
+  stdout : Failed running 'src/server.js'
+
+== C. image seule (node src/server.js en PID 1) limitée à 64 Mo
+commande : ["node","src/server.js"]   au repos : 21.86MiB / 64MiB (34.15%)
+  4220 200 GET /products
+   890 201 POST /orders
+   410 201 POST /orders (quantité > 100)
+   248 404 GET /inconnu
+   232 500 POST /orders (produit inconnu)
+  6000 requêtes en 15 s (concurrence 200) vers http://localhost (Host: api.localhost)
+pendant la charge (docker events) :
+  aucun événement oom/die/start
+état : OOMKilled=false RestartCount=0 état=running exit=0 limite=67108864
+cgroup memory.events : max 0 oom_kill 0
+
+== D. image seule limitée à 24 Mo
+commande : ["node","src/server.js"]   au repos : 21.87MiB / 24MiB (91.13%)
+  2840 404 GET /products
+  1246 502 GET /products
+   592 404 POST /orders
+   312 502 POST /orders
+   263 404 POST /orders (quantité > 100)
+   167 404 GET /inconnu
+   153 404 POST /orders (produit inconnu)
+   142 502 POST /orders (quantité > 100)
+   131 200 GET /products
+    78 502 POST /orders (produit inconnu)
+    71 502 GET /inconnu
+     2 201 POST /orders (quantité > 100)
+     2 201 POST /orders
+     1 500 POST /orders (produit inconnu)
+  6000 requêtes en 14 s (concurrence 200) vers http://localhost (Host: api.localhost)
+pendant la charge (docker events) :
+  09:28:28 die exitCode=137
+  09:28:28 oom exitCode=
+  09:28:30 start exitCode=
+  09:28:32 die exitCode=137
+  09:28:32 oom exitCode=
+  09:28:33 oom exitCode=
+état : OOMKilled=false RestartCount=5 état=running exit=0 limite=25165824
+cgroup memory.events : max 0 oom_kill 0
+
+$ docker inspect shop-api-1 --format {{.State.OOMKilled}}
+false
+[code retour 0]
+
+== Retour à la configuration dev du TP04 (sans limite)
+état : OOMKilled=false RestartCount=0 état=running exit=0 limite=0

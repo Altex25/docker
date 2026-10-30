@@ -1,0 +1,105 @@
+rule_files:
+  - ../rules/shop.yml
+
+evaluation_interval: 10s
+
+tests:
+  - interval: 10s
+    input_series:
+      - series: 'up{job="api", instance="10.0.0.2:3000"}'
+        values: "1 1 1 0 0 0 0 0 0"
+    alert_rule_test:
+      - eval_time: 40s
+        alertname: ApiDown
+        exp_alerts: []
+      - eval_time: 80s
+        alertname: ApiDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              job: api
+              instance: 10.0.0.2:3000
+            exp_annotations:
+              summary: "API injoignable (10.0.0.2:3000)"
+              description: "Prometheus n'arrive plus à scraper /metrics de l'API depuis 30 s (ou aucun réplica n'est découvert par DNS)."
+
+  - interval: 10s
+    input_series:
+      - series: 'up{job="worker", instance="10.0.0.3:9100"}'
+        values: "1 0 0 0 0 0"
+    alert_rule_test:
+      - eval_time: 50s
+        alertname: WorkerDown
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: worker
+              instance: 10.0.0.3:9100
+            exp_annotations:
+              summary: "Worker injoignable (10.0.0.3:9100)"
+              description: "Les commandes ne sont plus traitées : /metrics du worker ne répond plus depuis 30 s."
+
+  - interval: 10s
+    input_series:
+      - series: 'http_request_duration_seconds_count{job="api", route="/products", status="200"}'
+        values: "0+90x30"
+      - series: 'http_request_duration_seconds_count{job="api", route="/products", status="500"}'
+        values: "0+10x30"
+    promql_expr_test:
+      - expr: job:http_5xx_ratio:rate2m
+        eval_time: 3m
+        exp_samples:
+          - labels: 'job:http_5xx_ratio:rate2m{job="api"}'
+            value: 0.1
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: ApiHigh5xxRate
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: api
+            exp_annotations:
+              summary: "Plus de 5 % de réponses 5xx sur l'API (10%)"
+              description: "Taux de 5xx sur 2 min au-dessus de 5 % depuis 1 min."
+
+  - interval: 10s
+    input_series:
+      - series: 'container_memory_working_set_bytes{id="/docker/abc", name="shop-api-1", service="api", project="shop"}'
+        values: "95+0x20"
+      - series: 'container_spec_memory_limit_bytes{id="/docker/abc", name="shop-api-1", service="api", project="shop"}'
+        values: "100+0x20"
+      - series: 'container_memory_working_set_bytes{id="/docker/def", name="shop-db-1", service="db", project="shop"}'
+        values: "95+0x20"
+      - series: 'container_spec_memory_limit_bytes{id="/docker/def", name="shop-db-1", service="db", project="shop"}'
+        values: "0+0x20"
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: ContainerMemoryNearLimit
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              id: /docker/abc
+              name: shop-api-1
+              service: api
+              project: shop
+            exp_annotations:
+              summary: "shop-api-1 utilise 95% de sa limite mémoire"
+              description: "Working set au-dessus de 90 % de la limite depuis 30 s."
+
+  - interval: 1m
+    input_series:
+      - series: 'container_start_time_seconds{id="/docker/abc", name="shop-worker-1", service="worker", project="shop"}'
+        values: "1000 1000 1000 1300 1300"
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: ContainerRestarting
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              id: /docker/abc
+              name: shop-worker-1
+              service: worker
+              project: shop
+            exp_annotations:
+              summary: "shop-worker-1 a redémarré 1 fois en 10 min"
+              description: "Service worker du projet shop."

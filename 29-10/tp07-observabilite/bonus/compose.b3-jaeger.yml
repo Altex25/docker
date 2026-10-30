@@ -1,0 +1,9 @@
+services:
+  jaeger:
+    image: jaegertracing/jaeger:2.10.0@sha256:8c593d8048d86334eb52dba26633b6c846b8ecbe5c22905702c932ae97baeb42
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:16686:16686"
+    networks:
+      - obs
+      - shop_back
