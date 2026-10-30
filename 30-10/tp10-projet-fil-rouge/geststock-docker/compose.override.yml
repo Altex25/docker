@@ -1,0 +1,33 @@
+include:
+  - compose.mailpit.yml
+
+services:
+  traefik:
+    environment:
+      TRAEFIK_LOG_LEVEL: DEBUG
+
+  app:
+    image: local/geststock:dev
+    volumes:
+      - ./app:/var/www/geststock:ro
+      - ./docker/php/dev.ini:/usr/local/etc/php/conf.d/zz-geststock-dev.ini:ro
+    depends_on:
+      mailpit:
+        condition: service_healthy
+
+  rapport:
+    image: local/geststock:dev
+    volumes:
+      - ./app:/var/www/geststock:ro
+    depends_on:
+      mailpit:
+        condition: service_healthy
+
+  db:
+    ports:
+      - "127.0.0.1:${DB_DEBUG_PORT:-3307}:3306"
+    networks:
+      - debug
+
+networks:
+  debug: {}

@@ -1,0 +1,28 @@
+$ docker compose -f compose.yml -f compose.override.yml -f compose.hardened.yml up -d --wait
+$ ./scripts/audit.sh -p geststock
+CONTENEUR              UTILISATEUR PRIVILEGED  DROP   CAP_ADD                              RO     MÉMOIRE  PIDS      NNP    SOCKET  ÉCARTS
+geststock-mailpit-1    1000:1000   false       ALL    -                                    true   64M       64        true   -       0
+geststock-traefik-1    65534:65534 false       ALL    -                                    true   128M      128       true   -       0
+geststock-app-1        33:33       false       ALL    -                                    true   256M      128       true   -       0
+geststock-rapport-1    33:33       false       ALL    -                                    true   128M      32        true   -       0
+geststock-db-1         999:999     false       ALL    -                                    true   512M      256       true   -       0
+geststock-socket-proxy 65534:991   false       ALL    -                                    true   64M       64        true   ~montée 0
+
+! = écart, ~ = écart accepté (label tp08.audit.accept)
+6 conteneur(s), 0 écart(s), 1 écart(s) accepté(s)
+[code retour 0]
+
+$ COMPOSE="docker compose -f compose.yml -f compose.override.yml -f compose.hardened.yml" ./scripts/smoke-test.sh   (stack durcie)
+== Smoke test : http://localhost (Host: geststock.localhost)
+  OK     ?health : OK
+  OK     page d'accueil : 156 articles, PHP 8.3.36
+  OK     pas d'en-tête X-Powered-By, Server : Apache
+  OK     ajout d'un article avec photo : id 158
+  OK     photo relue à l'identique via /uploads/p_6ae4b579537511.63991609.png
+  OK     un .php dans /uploads n'est pas exécuté (HTTP 403)
+  OK     lib/config.php inaccessible (HTTP 404)
+  OK     rapport à la demande : Articles: 157, quantité totale: 9389
+  OK     mail reçu par Mailpit : Rapport stock 2026-10-30
+  OK     article de test 158 supprimé
+== OK
+[code retour 0]

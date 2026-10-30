@@ -1,0 +1,198 @@
+name: geststock
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-defaults: &defaults
+  restart: unless-stopped
+  logging: *logging
+
+x-healthcheck: &healthcheck
+  interval: 10s
+  timeout: 3s
+  retries: 5
+  start_period: 30s
+  start_interval: 1s
+
+x-app-env: &app-env
+  DB_HOST: db
+  DB_NAME: geststock
+  DB_USER: geststock
+  DB_PASS_FILE: /run/secrets/db_password
+  SMTP_HOST: ${SMTP_HOST:-mailpit}
+  SMTP_PORT: ${SMTP_PORT:-1025}
+  SMTP_TLS: ${SMTP_TLS:-off}
+  MAIL_FROM: ${MAIL_FROM:-geststock@shop.example}
+  REPORT_TO: ${REPORT_TO:-direction@shop.example}
+
+x-app: &app
+  <<: *defaults
+  image: ${REGISTRY:-local}/geststock:${VERSION:-dev}
+  environment: *app-env
+  secrets:
+    - db_password
+  depends_on:
+    db:
+      condition: service_healthy
+      restart: true
+
+services:
+  socket-proxy:
+    <<: *defaults
+    image: tecnativa/docker-socket-proxy:v0.4.1@sha256:3400c429c5f9e1b21d62130fb93b16e2e772d4fb7695bd52fc2b743800b9fe9e
+    user: "65534:${DOCKER_SOCKET_GID:-991}"
+    environment:
+      CONTAINERS: "1"
+      EVENTS: "1"
+      PING: "1"
+      VERSION: "1"
+      POST: "0"
+      LOG_LEVEL: warning
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    tmpfs:
+      - /tmp:uid=65534,gid=${DOCKER_SOCKET_GID:-991},mode=0700
+      - /run:uid=65534,gid=${DOCKER_SOCKET_GID:-991},mode=0700
+    networks:
+      - socket
+    deploy:
+      resources:
+        limits:
+          pids: 64
+          cpus: "0.25"
+          memory: 64M
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2375/_ping"]
+    labels:
+      tp08.audit.accept: docker_sock
+
+  traefik:
+    <<: *defaults
+    image: traefik:v3.6.25@sha256:31267173a15b4944e797a76ffd9c419707c8d8b32fe5b610f80cd0cfa05f372d
+    user: "65534:65534"
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: 80
+    environment:
+      TRAEFIK_PROVIDERS_DOCKER: "true"
+      TRAEFIK_PROVIDERS_DOCKER_ENDPOINT: tcp://socket-proxy:2375
+      TRAEFIK_PROVIDERS_DOCKER_EXPOSEDBYDEFAULT: "false"
+      TRAEFIK_PROVIDERS_DOCKER_NETWORK: ${COMPOSE_PROJECT_NAME}_front
+      TRAEFIK_PROVIDERS_DOCKER_CONSTRAINTS: Label(`com.docker.compose.project`,`${COMPOSE_PROJECT_NAME}`)
+      TRAEFIK_ENTRYPOINTS_WEB_ADDRESS: ":80"
+      TRAEFIK_ENTRYPOINTS_WEB_TRANSPORT_RESPONDINGTIMEOUTS_READTIMEOUT: 120s
+      TRAEFIK_PING: "true"
+      TRAEFIK_ACCESSLOG: "true"
+      TRAEFIK_ACCESSLOG_FORMAT: json
+      TRAEFIK_LOG_LEVEL: INFO
+      TRAEFIK_LOG_FORMAT: json
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    networks:
+      - front
+      - socket
+    depends_on:
+      socket-proxy:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          pids: 128
+          cpus: "0.50"
+          memory: 128M
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+
+  app:
+    <<: *app
+    build:
+      context: .
+      target: runtime
+    volumes:
+      - uploads:/var/www/html/uploads
+    networks:
+      - front
+      - back
+      - mail
+    stop_grace_period: 15s
+    healthcheck: *healthcheck
+    deploy:
+      resources:
+        limits:
+          pids: 128
+          cpus: "0.50"
+          memory: 256M
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.geststock.rule: Host(`${APP_HOST:-geststock.localhost}`)
+      traefik.http.routers.geststock.entrypoints: web
+      traefik.http.services.geststock.loadbalancer.server.port: "8080"
+      traefik.http.services.geststock.loadbalancer.healthcheck.path: /?health
+      traefik.http.services.geststock.loadbalancer.healthcheck.interval: 1s
+      traefik.http.services.geststock.loadbalancer.healthcheck.timeout: 1s
+
+  rapport:
+    <<: *app
+    command: ["supercronic", "-json", "-passthrough-logs", "-prometheus-listen-address", "0.0.0.0:9746", "/etc/geststock/crontab"]
+    networks:
+      - back
+      - mail
+    deploy:
+      resources:
+        limits:
+          pids: 32
+          cpus: "0.25"
+          memory: 128M
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:9746/health"]
+
+  db:
+    <<: *defaults
+    image: mariadb:11.4.13@sha256:d1891ede5a559f1086f55053bb8cc1569b0298338c4d72d71725a7f74f6ba620
+    user: "999:999"
+    environment:
+      MARIADB_DATABASE: geststock
+      MARIADB_USER: geststock
+      MARIADB_PASSWORD_FILE: /run/secrets/db_password
+      MARIADB_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+      MARIADB_AUTO_UPGRADE: "1"
+    secrets:
+      - db_password
+      - db_root_password
+    volumes:
+      - dbdata:/var/lib/mysql
+      - ./app/sql/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+    networks:
+      - back
+    deploy:
+      resources:
+        limits:
+          pids: 256
+          cpus: "1.00"
+          memory: 512M
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+
+networks:
+  front: {}
+  back:
+    internal: true
+  mail: {}
+  socket:
+    internal: true
+
+volumes:
+  dbdata: {}
+  uploads: {}
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+  db_root_password:
+    file: ./secrets/db_root_password.txt

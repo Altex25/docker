@@ -1,0 +1,43 @@
+== Exercice : restauration de la stack en service (prod, 2 réplicas, durcie)
+état initial : 156 articles, 39 photos référencées, 46 fichiers dans le volume
+
+$ make backup
+== Sauvegarde GestStock -> backups/20261030-163830
+  OK     base : 4.0K (1 instruction(s) INSERT)
+  OK     uploads : 4.0K, 46 fichier(s)
+  OK     manifeste : 156 articles, 39 photos référencées ; SHA256SUMS écrit
+== backups/20261030-163830
+
+== Incident simulé : 40 articles supprimés par erreur et 5 photos effacées du volume
+après l'incident : 116 articles, 29 photos référencées, 41 fichiers dans le volume
+
+$ FORCE=1 make restore B=backups/20261030-163830
+== Restauration GestStock depuis backups/20261030-163830 (docker compose -f compose.yml -f compose.prod.yml -f compose.hardened.yml -f compose.mailpit.yml)
+  OK     sommes de contrôle vérifiées
+  OK     app et rapport arrêtés (pas d'écriture pendant la restauration)
+  OK     base restaurée : 156 articles
+  OK     uploads restaurés : 46 fichier(s)
+  OK     app et rapport redémarrés et healthy (10s d'interruption)
+  OK     articles : 156 = manifeste
+  OK     fichiers uploads : 46 = manifeste
+== Restauration terminée
+après restauration : 156 articles, 39 photos référencées, 46 fichiers dans le volume
+?health via Traefik : OK, réplicas : geststock-app-1 Up 2 seconds (healthy),geststock-app-2 Up 2 seconds (healthy)
+
+== Sauvegarde : contenu et vérification
+  -rw-------@ 244 SHA256SUMS
+  -rw-------@ 3175 geststock.sql.gz
+  -rw-------@ 125 manifest.json
+  -rw-------@ 2453 uploads.tar.gz
+  manifest.json : {"date":"2026-10-30T16:38:30+01:00","items":156,"photos_referencees":39,"fichiers_uploads":46,"image":"local/geststock:dev"}
+  geststock.sql.gz: OK
+  uploads.tar.gz: OK
+  manifest.json: OK
+  la sauvegarde contient-elle des mots de passe ? 0 occurrence(s)
+
+== Rétention : KEEP=3, quatre sauvegardes de suite
+  OK     rétention : 1 ancienne(s) sauvegarde(s) supprimée(s), 3 conservées
+  OK     rétention : 1 ancienne(s) sauvegarde(s) supprimée(s), 3 conservées
+  OK     rétention : 1 ancienne(s) sauvegarde(s) supprimée(s), 3 conservées
+  OK     rétention : 1 ancienne(s) sauvegarde(s) supprimée(s), 3 conservées
+  sauvegardes restantes : 20261030-163845 20261030-163854 20261030-163856

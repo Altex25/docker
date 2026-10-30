@@ -1,0 +1,26 @@
+$ make up   (stack vierge : 4 articles de schema.sql)
+$ make migrate DUMP=../legacy-sim/export/geststock-legacy.sql UPLOADS=../legacy-sim/export/uploads.tar.gz
+== Migration du legacy : ../legacy-sim/export/geststock-legacy.sql + ../legacy-sim/export/uploads.tar.gz (docker compose)
+  OK     export du legacy intègre (SHA256SUMS)
+  OK     dump de MariaDB 10.3.39-MariaDB-1:10.3.39+maria~ubu2004 : 156 lignes dans items
+   == Sauvegarde GestStock -> backups/20261030-161720
+     OK     base : 4.0K (1 instruction(s) INSERT)
+     OK     uploads : 4.0K, 0 fichier(s)
+     OK     manifeste : 4 articles, 0 photos référencées ; SHA256SUMS écrit
+   == backups/20261030-161720
+  OK     app et rapport arrêtés pendant la bascule
+  OK     dump importé dans MariaDB 11.4.13-MariaDB-ubu2404
+  OK     uploads copiés dans le volume (39 fichiers)
+  OK     app et rapport redémarrés
+-- Vérifications
+  OK     articles : 156 en base = 156 dans le dump
+  OK     collation de la table conservée : utf8mb4_general_ci
+  OK     texte non ASCII intact : Écrou « spécial » ½ pouce — lot ☕
+  ATTENTION 1 photo(s) référencée(s) absente(s) de l'export (déjà perdues sur le legacy) :
+             p_5fperdue.1.jpg
+  ATTENTION 1 fichier(s) sans article (conservés, à trier) :
+             p_orpheline.1.png
+  OK     contenu des photos identique à l'export (empreinte c1f8eec6763c59d6)
+  OK     photo migrée servie par Apache : /uploads/p_5f000004.31676.jpg (HTTP 200)
+== Migration terminée : 156 articles, 39 photos référencées
+[code retour 0]

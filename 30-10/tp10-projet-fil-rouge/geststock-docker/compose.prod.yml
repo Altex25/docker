@@ -1,0 +1,13 @@
+services:
+  app:
+    image: ${REGISTRY:?}/geststock:${VERSION:?}
+    build: !reset null
+    environment:
+      SMTP_HOST: ${SMTP_HOST:?SMTP_HOST (relais SMTP) doit être défini}
+    deploy:
+      replicas: 2
+
+  rapport:
+    image: ${REGISTRY:?}/geststock:${VERSION:?}
+    environment:
+      SMTP_HOST: ${SMTP_HOST:?SMTP_HOST (relais SMTP) doit être défini}

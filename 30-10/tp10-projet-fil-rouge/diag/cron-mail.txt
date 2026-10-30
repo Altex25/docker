@@ -1,0 +1,41 @@
+== Service rapport : même image que l'app, supercronic en PID 1, une seule instance
+geststock-rapport-1  local/geststock:dev  Up About a minute (healthy)
+  PID 1 : supercronic -json -passthrough-logs -prometheus-listen-address 0.0.0.0:9746 /etc/geststock/crontab 
+  utilisateur : www-data (33)
+  crontab : 0 6 * * * php /var/www/geststock/bin/rapport.php
+  fuseau : TZ=Europe/Paris, date du conteneur : 2026-10-30 16:36:38 CET
+  syntaxe de la crontab : time="2026-10-30T16:36:38+01:00" level=info msg="crontab is valid"
+  réplicas de rapport en prod : 1 (un seul envoi par jour)
+
+== Rapport à la demande : docker compose exec rapport rapport-maintenant
+  | Articles: 156, quantité totale: 9387
+  | Stock bas:
+  |  - Article legacy n°120: 0
+  |  - Photo perdue depuis 2020: 1
+  |  - Article legacy n°13: 1
+  |  - Article legacy n°133: 1
+  code retour : 0
+  mails dans Mailpit : 0 -> 1
+  From: geststock@shop.example
+  To: direction@shop.example
+  Subject: Rapport stock 2026-10-30
+  Date: 2026-10-30T16:36:38+01:00
+  Content-Type: text/plain; charset=UTF-8
+  > Articles: 156, quantité totale: 9387
+  > Stock bas:
+  >  - Article legacy n°120: 0
+
+== Exécution planifiée (crontab de test toutes les 5 s, métriques Prometheus de supercronic)
+  {"iteration":0,"job.command":"php /var/www/geststock/bin/rapport.php","job.position":0,"job.schedule":"*/5 * * * * * *","level":"info","msg":"starting","time":"2026-10-30
+  {"time":"2026-10-30T16:36:45+01:00","level":"info","app":"geststock","msg":"rapport généré"}
+  {"time":"2026-10-30T16:36:45+01:00","level":"info","app":"geststock","msg":"rapport envoyé à direction@shop.example via mailpit"}
+  supercronic_executions{command="php /var/www/geststock/bin/rapport.php",position="0",schedule="*/5 * * * * * *"} 1
+  supercronic_successful_executions{command="php /var/www/geststock/bin/rapport.php",position="0",schedule="*/5 * * * * * *"} 1
+
+== Relais SMTP en panne : Mailpit arrêté
+  rapport-maintenant : code retour 1
+  {"time":"2026-10-30T16:36:48+01:00","level":"error","app":"geststock","msg":"échec de l'envoi du rapport via mailpit"}
+  supercronic_executions{command="php /var/www/geststock/bin/rapport.php",position="0",schedule="*/5 * * * * * *"} 2
+  supercronic_failed_executions{command="php /var/www/geststock/bin/rapport.php",position="0",schedule="*/5 * * * * * *"} 1
+  supercronic_successful_executions{command="php /var/www/geststock/bin/rapport.php",position="0",schedule="*/5 * * * * * *"} 1
+  Mailpit relancé : Up 1 second (healthy)

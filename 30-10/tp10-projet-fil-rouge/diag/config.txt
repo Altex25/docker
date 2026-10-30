@@ -1,0 +1,45 @@
+== Variables de l'application dans le conteneur (docker inspect) : aucun mot de passe
+DB_HOST=db
+DB_NAME=geststock
+DB_PASS_FILE=/run/secrets/db_password
+DB_USER=geststock
+LOG_FILE=php://stderr
+MAIL_FROM=geststock@shop.example
+REPORT_TO=direction@shop.example
+SMTP_HOST=mailpit
+SMTP_PORT=1025
+SMTP_TLS=off
+UPLOAD_DIR=/var/www/html/uploads
+
+== Le secret est un fichier monté, lisible par www-data, absent de l'image
+total 4
+-rw-r--r-- 1 www-data www-data 32 Oct 30 16:11 db_password
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+mot de passe présent dans docker inspect ?     0
+mot de passe présent dans l'image ?            0
+mot de passe présent hors de secrets/ ?        0
+ancien mot de passe GestStock2017! dans app/ ? 0
+
+== Valeurs effectives lues par config.php
+DB_HOST    = db
+DB_PORT    = 3306
+DB_NAME    = geststock
+DB_USER    = geststock
+UPLOAD_DIR = /var/www/html/uploads/
+LOG_FILE   = php://stderr
+SMTP_HOST  = mailpit
+REPORT_TO  = direction@shop.example
+DRAIN_FILE = /tmp/geststock-drain
+DB_PASS    = 32 caractères (lu depuis /run/secrets/db_password)
+
+== Changer une valeur sans reconstruire : REPORT_TO=compta@shop.example
+ Container geststock-rapport-1 Healthy 
+dernier mail : compta@shop.example / Rapport stock 2026-10-30
+ Container geststock-rapport-1 Healthy 
+
+== Secret erroné : MariaDB refuse, ?health passe à 503 (conteneur jetable)
+DB KO (HTTP 503)
+
+== Fichier secret absent : message explicite, aucune valeur en dur
+string(0) ""
+geststock: secret DB_PASS illisible (/run/secrets/absent)

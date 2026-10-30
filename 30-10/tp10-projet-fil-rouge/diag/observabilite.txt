@@ -1,0 +1,83 @@
+== Trafic de démonstration : 60 GET, 2 ajouts, 1 suppression, 5 pages absentes, 1 rapport
+
+== Loki : flux GestStock découverts par Promtail (docker_sd), labels ajoutés par le pipeline
+  service=app stream=stderr app=apache severity=error : 10 ligne(s)
+  service=app stream=stderr app=apache severity=info : 6 ligne(s)
+  service=app stream=stderr app=geststock severity=info : 8 ligne(s)
+  service=app stream=stdout app=apache severity=info : 138 ligne(s)
+  service=mailpit stream=stdout app=- severity=unknown : 6 ligne(s)
+  service=rapport stream=stderr app=- severity=info : 2 ligne(s)
+  service=rapport stream=stderr app=geststock severity=info : 4 ligne(s)
+  service=traefik stream=stdout app=- severity=- : 158 ligne(s)
+
+== Loki : accès Apache par classe de statut (10 min)
+  2xx : 126
+  3xx : 2
+  4xx : 10
+
+== Loki : derniers événements applicatifs ({project="geststock", app="geststock"})
+  {"time":"2026-10-30T16:45:31+01:00","level":"info","app":"geststock","msg":"rapport envoyé à direction@shop.example via mailpit"}
+  {"time":"2026-10-30T16:46:09+01:00","level":"info","app":"geststock","msg":"article ajouté: obs-1 (1)"}
+  {"time":"2026-10-30T16:46:09+01:00","level":"info","app":"geststock","msg":"article ajouté: obs-2 (1)"}
+  {"time":"2026-10-30T16:46:09+01:00","level":"info","app":"geststock","msg":"article supprimé: 167"}
+  {"time":"2026-10-30T16:46:09+01:00","level":"info","app":"geststock","msg":"rapport envoyé à direction@shop.example via mailpit"}
+  {"time":"2026-10-30T16:46:09+01:00","level":"info","app":"geststock","msg":"rapport généré"}
+
+== Loki : erreurs ({project="geststock", severity="error"})
+  {"time":"2026-10-30 16:46:09.119229","level":"error","app":"apache","module":"php","msg":"script '/var/www/geststock/public/absent.php' not found or unable to stat"}
+  {"time":"2026-10-30 16:46:09.128751","level":"error","app":"apache","module":"php","msg":"script '/var/www/geststock/public/absent.php' not found or unable to stat"}
+
+== Prometheus / cAdvisor : conteneurs GestStock
+  geststock-app-1  mémoire=18 Mio
+  geststock-app-2  mémoire=18 Mio
+  geststock-db-1  mémoire=98 Mio
+  geststock-mailpit-1  mémoire=11 Mio
+  geststock-rapport-1  mémoire=26 Mio
+  geststock-socket-proxy-1  mémoire=12 Mio
+  geststock-traefik-1  mémoire=92 Mio
+  geststock-app-1  limite=256 Mio
+  geststock-app-2  limite=256 Mio
+  geststock-db-1  limite=512 Mio
+  geststock-mailpit-1  limite=64 Mio
+  geststock-rapport-1  limite=128 Mio
+  geststock-socket-proxy-1  limite=64 Mio
+  geststock-traefik-1  limite=128 Mio
+  réplicas app vus par cAdvisor : 2
+
+== Prometheus : métriques supercronic (job geststock-rapport)
+  up{instance=172.28.0.3:9746} = 1
+
+== Règles d'alerte GestStock chargées
+  GestStockAppAbsente : inactive (ok)
+  GestStockRapportCronAbsent : inactive (ok)
+  GestStockRapportEnEchec : inactive (ok)
+  GestStockMemoireProcheLimite : inactive (ok)
+
+== Grafana : tableau de bord provisionné
+  GestStock (Shop SAS) : http://localhost:3001/d/geststock/geststock
+  - Réplicas app en service
+  - Requêtes/s (Apache)
+  - Réponses 5xx (5 min)
+  - Erreurs applicatives (1 h)
+  - Rapports réussis
+  - Rapports en échec
+  - Requêtes par classe de statut
+  - Mémoire par conteneur (cAdvisor)
+  - CPU par conteneur (cAdvisor)
+  - Réseau reçu par conteneur (cAdvisor)
+  - Logs applicatifs GestStock (hors accès Apache)
+  - Erreurs et avertissements (app, Apache, supercronic)
+
+== Grafana : chaque panneau interrogé via /api/ds/query (15 dernières minutes)
+  Réplicas app en service                              1 série(s) dernière valeur : 2
+  Requêtes/s (Apache)                                  1 série(s) dernière valeur : 1.15
+  Réponses 5xx (5 min)                                 1 série(s) dernière valeur : 0
+  Erreurs applicatives (1 h)                            1 série(s) dernière valeur : 10
+  Rapports réussis                                     1 série(s) dernière valeur : 0
+  Rapports en échec                                    1 série(s) dernière valeur : 0
+  Requêtes par classe de statut                        3 série(s) dernière valeur : 1.05, 0.016666666666666666, 0.08333333333333333
+  Mémoire par conteneur (cAdvisor)                     7 série(s) dernière valeur : 19726336, 19677184, 103653376
+  CPU par conteneur (cAdvisor)                          7 série(s) dernière valeur : 0.0033943742008808032, 0.004060985533453891, 0.0048054174190
+  Réseau reçu par conteneur (cAdvisor)                7 série(s) dernière valeur : 8006.108822275892, 8574.954792043402, 3009.1679399916657
+  Logs applicatifs GestStock (hors accès Apache)       1 série(s) dernière valeur : 1793375169303109619_99ccc012
+  Erreurs et avertissements (app, Apache, supercronic)  1 série(s) dernière valeur : 1793375169103211861_8d6d05ef

@@ -1,0 +1,42 @@
+services:
+  mailpit:
+    image: axllent/mailpit:v1.31.6@sha256:23fe39e81bde596a918000b3135c0f85dc8bb4c9ea6be274b051143f3e300387
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    user: "1000:1000"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:uid=1000,gid=1000,mode=0700,size=32m
+    deploy:
+      resources:
+        limits:
+          pids: 64
+          cpus: "0.25"
+          memory: 64M
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+      MP_MAX_MESSAGES: "500"
+    networks:
+      - mail
+      - front
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+      start_interval: 1s
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.mailpit.rule: Host(`${MAIL_HOST:-mail.localhost}`)
+      traefik.http.routers.mailpit.entrypoints: web
+      traefik.http.services.mailpit.loadbalancer.server.port: "8025"

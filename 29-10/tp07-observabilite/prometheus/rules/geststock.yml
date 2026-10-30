@@ -1,0 +1,39 @@
+groups:
+  - name: geststock-alerts
+    rules:
+      - alert: GestStockAppAbsente
+        expr: absent(container_last_seen{project="geststock", service="app"})
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "GestStock : aucun conteneur app en service"
+          description: "cAdvisor ne voit plus aucun conteneur app du projet geststock depuis 1 minute."
+
+      - alert: GestStockRapportCronAbsent
+        expr: up{job="geststock-rapport"} == 0 or absent(up{job="geststock-rapport"})
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "GestStock : le planificateur du rapport (supercronic) ne répond plus"
+          description: "Plus de métriques supercronic depuis 2 minutes : le rapport de 6 h ne partira pas."
+
+      - alert: GestStockRapportEnEchec
+        expr: increase(supercronic_failed_executions{project="geststock"}[25h]) > 0
+        labels:
+          severity: warning
+        annotations:
+          summary: "GestStock : le rapport quotidien a échoué"
+          description: "{{ $value | printf \"%.0f\" }} exécution(s) en échec sur 25 h (relais SMTP, base). Relancer avec make rapport après correction."
+
+      - alert: GestStockMemoireProcheLimite
+        expr: |
+          max by (name) (container_memory_working_set_bytes{project="geststock"})
+            / max by (name) (container_spec_memory_limit_bytes{project="geststock"} > 0) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "GestStock : {{ $labels.name }} à plus de 90 % de sa limite mémoire"
+          description: "Risque d'OOM kill imminent."

@@ -1,0 +1,61 @@
+== Fichiers compose et services
+  compose.yml compose.override.yml                 app db mailpit rapport socket-proxy traefik
+  compose.yml compose.prod.yml                     app db rapport socket-proxy traefik
+  compose.yml compose.prod.yml compose.hardened.yml app db rapport socket-proxy traefik
+
+== Différences dev / prod sur le service app
+  mode   image                        réplicas montages
+  dev    local/geststock:dev          1         uploads, app, dev.ini
+  prod   local/geststock:dev          2         uploads
+  prod sans SMTP_HOST : error while interpolating services.app.environment.SMTP_HOST: required variable SMTP_HOST is missing a value: SMTP_HOST (relais SMTP) doit être défini
+  prod sans VERSION   : error while interpolating services.app.image: required variable VERSION is missing a value: VERSION doit être défini
+
+== Bascule de la stack locale en mode prod (2 réplicas, durcie)
+ Container geststock-app-2 Healthy 
+geststock-app-1	Up 21 seconds (healthy)
+geststock-app-2	Up 21 seconds (healthy)
+geststock-db-1	Up 29 seconds (healthy)
+geststock-mailpit-1	Up About a minute (healthy)
+geststock-rapport-1	Up 27 seconds (healthy)
+geststock-socket-proxy-1	Up 7 minutes (healthy)
+geststock-traefik-1	Up About a minute (healthy)
+
+== Réseaux : qui est sur quoi
+  front   internal=false  app-1 app-2 mailpit-1 traefik-1
+  back    internal=true   app-1 app-2 db-1 rapport-1
+  mail    internal=false  app-1 app-2 mailpit-1 rapport-1
+  socket  internal=true   socket-proxy-1 traefik-1
+  traefik -> db:3306        : nom inconnu (traefik n'est pas sur back)
+  db -> Internet            : pas de sortie (réseau back internal)
+  app -> db:3306            : joignable
+  rapport -> mailpit:1025   : joignable
+  socket-proxy publié ?     : 0 port publié
+
+== Traefik répartit entre les 2 réplicas (pied de page « serveur <hostname> »)
+     4 serveur 3bedc82033b4
+     4 serveur e113690953cd
+
+== Volume uploads partagé : une photo envoyée via un réplica est lue par l'autre
+  geststock-app-1 : -rw-r--r-- www-data 22 /var/www/html/uploads/p_6ae4b938be73c2.56406342.png
+  geststock-app-2 : -rw-r--r-- www-data 22 /var/www/html/uploads/p_6ae4b938be73c2.56406342.png
+
+== Volumes nommés et init de la base
+geststock_dbdata
+geststock_uploads
+  init : app/sql/schema.sql -> /docker-entrypoint-initdb.d/001-schema.sql (ro)
+
+== Healthchecks, limites, logs rotatifs, redémarrage
+  geststock-app-1            healthy  mem=256M  cpu=0.5   pids=128  json-file 10mx3    unless-stopped
+  geststock-app-2            healthy  mem=256M  cpu=0.5   pids=128  json-file 10mx3    unless-stopped
+  geststock-db-1             healthy  mem=512M  cpu=1     pids=256  json-file 10mx3    unless-stopped
+  geststock-mailpit-1        healthy  mem=64M   cpu=0.25  pids=64   json-file 10mx3    unless-stopped
+  geststock-rapport-1        healthy  mem=128M  cpu=0.25  pids=32   json-file 10mx3    unless-stopped
+  geststock-socket-proxy-1   healthy  mem=64M   cpu=0.25  pids=64   json-file 10mx3    unless-stopped
+  geststock-traefik-1        healthy  mem=128M  cpu=0.5   pids=128  json-file 10mx3    unless-stopped
+
+== depends_on : condition service_healthy + restart: true
+  app attend db (service_healthy, restart)
+  rapport attend db (service_healthy, restart)
+  traefik attend socket-proxy (service_healthy)
+  docker compose restart db : app redémarrée aussi ? oui (2026-10-30T15:34:58.750779042Z -> 2026-10-30T15:35:29.351875375Z)
+  ?health après redémarrage : 404 page not found

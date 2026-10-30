@@ -1,0 +1,49 @@
+Trafic : GET /, GET /?health (non journalisé), POST d'un article, ?delete, GET d'un .php absent, puis rapport.
+
+== app : flux stdout (docker logs 2>/dev/null) = journal d accès Apache
+{"time":"2026-10-30T16:26:32+0100","level":"info","app":"apache","msg":"access","method":"GET","path":"/index.php","status":200,"bytes":2748,"duration_ms":10,"client":"192.168.32.1","ua":"curl/8.7.1"}
+{"time":"2026-10-30T16:26:32+0100","level":"info","app":"apache","msg":"access","method":"POST","path":"/index.php","status":200,"bytes":2786,"duration_ms":8,"client":"192.168.32.1","ua":"curl/8.7.1"}
+{"time":"2026-10-30T16:26:32+0100","level":"info","app":"apache","msg":"access","method":"GET","path":"/index.php","status":200,"bytes":2764,"duration_ms":1,"client":"192.168.32.1","ua":"curl/8.7.1"}
+{"time":"2026-10-30T16:26:32+0100","level":"info","app":"apache","msg":"access","method":"GET","path":"/index.php?delete=159","status":302,"bytes":0,"duration_ms":2,"client":"192.168.32.1","ua":"curl/8.7.1"}
+{"time":"2026-10-30T16:26:32+0100","level":"info","app":"apache","msg":"access","method":"GET","path":"/nexistepas.php","status":404,"bytes":236,"duration_ms":0,"client":"192.168.32.1","ua":"curl/8.7.1"}
+
+== app : flux stderr (docker logs >/dev/null) = app_log() + erreurs Apache/PHP
+{"time":"2026-10-30T16:26:32+01:00","level":"info","app":"geststock","msg":"article ajouté: Log demo (1)"}
+{"time":"2026-10-30T16:26:32+01:00","level":"info","app":"geststock","msg":"article supprimé: 159"}
+{"time":"2026-10-30 16:26:32.248094","level":"error","app":"apache","module":"php","msg":"script '/var/www/geststock/public/nexistepas.php' not found or unable to stat"}
+
+== jq sur les lignes de l application : niveau et message
+info	article ajouté: Log demo (1)
+info	article supprimé: 159
+ Container geststock-rapport-1 Healthy 
+== aucun fichier de log écrit dans le conteneur
+total 8
+drwxrwxrwt 2 www-data www-data 4096 Oct 28 02:26 .
+drwxr-xr-x 1 root     root     4096 Oct 28 02:26 ..
+lrwxrwxrwx 1 www-data www-data   11 Oct 28 02:26 access.log -> /dev/stdout
+lrwxrwxrwx 1 www-data www-data   11 Oct 28 02:26 error.log -> /dev/stderr
+lrwxrwxrwx 1 www-data www-data   11 Oct 28 02:26 other_vhosts_access.log -> /dev/stdout
+ls: cannot access '/var/log/geststock': No such file or directory
+
+== conteneur rapport
+ Container geststock-traefik-1 Healthy 
+$ docker compose exec rapport rapport-maintenant   (sortie de la commande)
+Articles: 156, quantité totale: 9387
+Stock bas:
+$ docker compose logs rapport   (journal du conteneur)
+{"time":"2026-10-30T16:28:05+01:00","level":"info","app":"geststock","msg":"rapport généré"}
+{"time":"2026-10-30T16:28:05+01:00","level":"info","app":"geststock","msg":"rapport envoyé à direction@shop.example via mailpit"}
+
+$ supercronic avec une crontab de test (toutes les 5 s, 8 s)
+{"level":"warning","msg":"process reaping disabled, not pid 1","time":"2026-10-30T16:28:06+01:00"}
+{"level":"info","msg":"read crontab: /tmp/crontab-test","time":"2026-10-30T16:28:06+01:00"}
+{"iteration":0,"job.command":"php /var/www/geststock/bin/rapport.php","job.position":0,"job.schedule":"*/5 * * * * * *","level":"info","msg":"starting","time":"2026-10-30T16:28:10+01:00"}
+{"time":"2026-10-30T16:28:10+01:00","level":"info","app":"geststock","msg":"rapport généré"}
+{"time":"2026-10-30T16:28:10+01:00","level":"info","app":"geststock","msg":"rapport envoyé à direction@shop.example via mailpit"}
+Articles: 156, quantité totale: 9387
+Stock bas:
+{"iteration":0,"job.command":"php /var/www/geststock/bin/rapport.php","job.position":0,"job.schedule":"*/5 * * * * * *","level":"info","msg":"job succeeded","time":"2026-10-30T16:28:10+01:00"}
+{"level":"info","msg":"received terminated, shutting down","time":"2026-10-30T16:28:14+01:00"}
+{"level":"info","msg":"waiting for jobs to finish","time":"2026-10-30T16:28:14+01:00"}
+{"level":"info","msg":"exiting","time":"2026-10-30T16:28:14+01:00"}
+

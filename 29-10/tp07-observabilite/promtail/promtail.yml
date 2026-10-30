@@ -49,3 +49,22 @@ scrape_configs:
                 template: '{{ if .status }}{{ substr 0 1 .status }}xx{{ end }}'
             - labels:
                 status_class:
+      - match:
+          selector: '{project=~"geststock.*", service=~"app|rapport|mailpit"}'
+          stages:
+            - json:
+                expressions:
+                  level: level
+                  app: app
+                  status: status
+            - template:
+                source: severity
+                template: >-
+                  {{ if not .level }}unknown{{ else }}{{ $l := ToLower .level }}{{ if or (eq $l "emerg") (eq $l "alert") (eq $l "crit") }}fatal{{ else if eq $l "error" }}error{{ else if or (eq $l "warn") (eq $l "warning") }}warn{{ else if or (eq $l "info") (eq $l "notice") }}info{{ else if hasPrefix "debug" $l }}debug{{ else if hasPrefix "trace" $l }}debug{{ else }}unknown{{ end }}{{ end }}
+            - template:
+                source: status_class
+                template: '{{ if .status }}{{ substr 0 1 .status }}xx{{ end }}'
+            - labels:
+                severity:
+                app:
+                status_class:

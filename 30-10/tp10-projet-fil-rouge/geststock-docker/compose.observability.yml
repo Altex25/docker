@@ -1,0 +1,13 @@
+services:
+  rapport:
+    networks:
+      back: {}
+      mail: {}
+      obs:
+        aliases:
+          - geststock-rapport
+
+networks:
+  obs:
+    name: observability_obs
+    external: true

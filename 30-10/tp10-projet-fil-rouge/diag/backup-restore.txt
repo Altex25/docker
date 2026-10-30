@@ -1,0 +1,25 @@
+$ make backup
+== Sauvegarde GestStock -> backups/20261030-161748
+  OK     base : 4.0K (1 instruction(s) INSERT)
+  OK     uploads : 4.0K, 39 fichier(s)
+  OK     manifeste : 156 articles, 39 photos référencées ; SHA256SUMS écrit
+== backups/20261030-161748
+
+$ make test-restore
+== Test de restauration de backups/20261030-161748 dans le projet jetable geststock-restoretest
+  OK     stack vierge démarrée : 4 articles (jeu initial de schema.sql)
+   == Restauration GestStock depuis backups/20261030-161748 (docker compose -p geststock-restoretest -f compose.yml)
+     OK     sommes de contrôle vérifiées
+     OK     app et rapport arrêtés (pas d'écriture pendant la restauration)
+     OK     base restaurée : 156 articles
+     OK     uploads restaurés : 39 fichier(s)
+     OK     app et rapport redémarrés et healthy (9s d'interruption)
+     OK     articles : 156 = manifeste
+     OK     fichiers uploads : 39 = manifeste
+   == Restauration terminée
+  OK     contenu des uploads identique octet pour octet (empreinte 5096937bfe6c54fa)
+  OK     ?health : OK
+  OK     page servie par la stack restaurée : GestStock — inventaire (156 articles)
+  OK     photo p_5f000004.31676.jpg servie (HTTP 200)
+== Restauration validée, projet geststock-restoretest supprimé
+[code retour 0]

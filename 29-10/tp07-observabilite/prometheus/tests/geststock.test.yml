@@ -1,0 +1,45 @@
+rule_files:
+  - ../rules/geststock.yml
+
+evaluation_interval: 1m
+
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'supercronic_failed_executions{project="geststock", job="geststock-rapport"}'
+        values: '0 0 0 1 1 1'
+      - series: 'up{job="geststock-rapport"}'
+        values: '1 1 1 0 0 0 0'
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: GestStockRapportEnEchec
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: GestStockRapportEnEchec
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              project: geststock
+              job: geststock-rapport
+            exp_annotations:
+              summary: "GestStock : le rapport quotidien a échoué"
+              description: "1 exécution(s) en échec sur 25 h (relais SMTP, base). Relancer avec make rapport après correction."
+      - eval_time: 6m
+        alertname: GestStockRapportCronAbsent
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: geststock-rapport
+            exp_annotations:
+              summary: "GestStock : le planificateur du rapport (supercronic) ne répond plus"
+              description: "Plus de métriques supercronic depuis 2 minutes : le rapport de 6 h ne partira pas."
+      - eval_time: 3m
+        alertname: GestStockAppAbsente
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              project: geststock
+              service: app
+            exp_annotations:
+              summary: "GestStock : aucun conteneur app en service"
+              description: "cAdvisor ne voit plus aucun conteneur app du projet geststock depuis 1 minute."
