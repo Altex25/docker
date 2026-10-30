@@ -1,0 +1,64 @@
+== PostgreSQL, image par défaut (entrypoint root puis su-exec postgres), volume neuf
+
+[cap_add: aucune]
+  exited    exit=1    chmod: /var/run/postgresql: Operation not permitted error: failed switching to "postgres": operation not permitted 
+
+[cap_add: CHOWN]
+  exited    exit=1    chmod: /var/run/postgresql: Operation not permitted error: failed switching to "postgres": operation not permitted 
+
+[cap_add: CHOWN,SETUID,SETGID]
+  running   exit=0    chmod: /var/lib/postgresql/data: Operation not permitted chmod: /var/run/postgresql: Operation not permitted 
+            -> 2026-10-30 13:13:44.958 UTC [1] LOG:  database system is ready to accept connections
+
+[cap_add: CHOWN,SETUID,SETGID,FOWNER]
+  exited    exit=1    find: /var/lib/postgresql/data: Permission denied 
+
+[cap_add: CHOWN,SETUID,SETGID,FOWNER,DAC_OVERRIDE]
+  running   exit=0    
+            -> 2026-10-30 13:13:58.982 UTC [1] LOG:  database system is ready to accept connections
+
+== PostgreSQL, volume existant (données déjà à 70:70) : redémarrage avec le jeu minimal trouvé
+
+[cap_add: CHOWN,SETUID,SETGID,FOWNER,DAC_OVERRIDE]
+  running   exit=0    
+            -> 2026-10-30 13:14:06.302 UTC [1] LOG:  database system is ready to accept connections
+
+[cap_add: CHOWN,SETUID,SETGID]
+  exited    exit=1    chmod: /var/run/postgresql: Operation not permitted find: /var/lib/postgresql/data: Permission denied 
+
+[cap_add: CHOWN,SETUID,SETGID,DAC_OVERRIDE]
+  running   exit=0    chmod: /var/lib/postgresql/data: Operation not permitted chmod: /var/run/postgresql: Operation not permitted 
+            -> 2026-10-30 13:14:20.915 UTC [1] LOG:  database system is ready to accept connections
+
+== PostgreSQL lancé directement en 70:70 (pas d'étape root), volume existant
+
+[cap_add: aucune] [user: 70:70]
+  running   exit=0    
+            -> 2026-10-30 13:14:28.489 UTC [1] LOG:  database system is ready to accept connections
+
+== Traefik, écoute sur :80 dans le conteneur
+
+$ docker run --rm --cap-drop ALL alpine cat /proc/sys/net/ipv4/ip_unprivileged_port_start
+0
+
+[cap_add: aucune]
+  running   exit=0    
+            healthcheck --ping : OK: http://:8080/ping
+
+== Même chose avec le seuil historique (sysctl net.ipv4.ip_unprivileged_port_start=1024)
+
+[cap_add: aucune] [net.ipv4.ip_unprivileged_port_start=1024]
+  exited    exit=1    2026-10-30T13:14:40Z ERR Command error error="command traefik error: error while building entryPoint web: building listener: error opening listener: listen tcp :80: bind: permission denied" 
+            healthcheck --ping : Error response from daemon: container 39f0a3fe75d3d851af9b37adb17177eac436049382bdecd9888960031f9f07ab is not running
+
+[cap_add: NET_BIND_SERVICE] [net.ipv4.ip_unprivileged_port_start=1024]
+  running   exit=0    
+            healthcheck --ping : OK: http://:8080/ping
+
+[cap_add: NET_BIND_SERVICE] [user: 65534:65534] [net.ipv4.ip_unprivileged_port_start=1024]
+  exited    exit=1    2026-10-30T13:14:48Z ERR Command error error="command traefik error: error while building entryPoint web: building listener: error opening listener: listen tcp :80: bind: permission denied" 
+            healthcheck --ping : Error response from daemon: container 8de68983e2e7a903348a50d1861aa403dd3693303b1918b427cc2815e332faf7 is not running
+
+[cap_add: aucune] [user: 65534:65534]
+  running   exit=0    
+            healthcheck --ping : OK: http://:8080/ping

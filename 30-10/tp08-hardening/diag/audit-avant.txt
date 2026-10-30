@@ -1,0 +1,20 @@
+$ ./audit.sh -p shop   (stack TP04 en mode dev : compose.yml + compose.override.yml + compose.backup.yml)
+CONTENEUR              UTILISATEUR PRIVILEGED  DROP   CAP_ADD                              RO     MÉMOIRE  PIDS      NNP    SOCKET  ÉCARTS
+shop-api-1             1000:1000   false       !-     -                                    !false !illimitée !illimité !false -       5
+shop-worker-1          10001:10001 false       !-     -                                    !false !illimitée !illimité !false -       5
+shop-adminer-1         adminer     false       !-     -                                    !false !illimitée !illimité !false -       5
+shop-backup-1          !(root)     false       !-     -                                    !false !illimitée !illimité !false -       6
+shop-traefik-1         !(root)     false       !-     -                                    !false !illimitée !illimité !false !montée 7
+shop-db-1              !(root)     false       !-     -                                    !false !illimitée !illimité !false -       6
+shop-redis-1           !(root)     false       !-     -                                    !false !illimitée !illimité !false -       6
+
+! = écart, ~ = écart accepté (label tp08.audit.accept)
+7 conteneur(s), 40 écart(s), 0 écart(s) accepté(s)
+  cap_drop : 7
+  docker_sock : 1
+  memory : 7
+  no_new_privs : 7
+  pids : 7
+  read_only : 7
+  user : 4
+[code retour 1]

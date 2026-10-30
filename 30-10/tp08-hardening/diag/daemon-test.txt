@@ -1,0 +1,71 @@
+== Validation syntaxique par dockerd lui-même
+time="2026-10-30T13:21:09.490134605Z" level=info msg="User namespaces: ID ranges will be mapped to subuid/subgid ranges of: dockremap"
+configuration OK
+
+== Phase 1 : daemon par défaut, des données existent déjà
+volumes : donnees, images : alpine:3.20
+propriétaire réel du fichier : 0:0 /var/lib/docker/volumes/donnees/_data/fichier
+deux conteneurs sur le bridge par défaut (icc par défaut = true) :
+  ping 172.18.0.2 depuis un autre conteneur : OK
+
+== Phase 2 : même /var/lib/docker, daemon redémarré avec daemon.json
+SecurityOptions=["name=apparmor","name=seccomp,profile=builtin","name=userns","name=cgroupns","name=no-new-privileges"] LiveRestore=true LoggingDriver=local DockerRootDir=/var/lib/docker/165536.165536
+volumes : [], images : []
+
+$ ls /var/lib/docker
+165536.165536
+buildkit
+containerd
+containers
+engine-id
+image
+network
+overlay2
+plugins
+runtimes
+swarm
+tmp
+volumes
+[code retour 0]
+
+$ grep dockremap /etc/subuid /etc/subgid
+/etc/subuid:dockremap:165536:65536
+/etc/subgid:dockremap:165536:65536
+[code retour 0]
+
+root dans le conteneur = uid non privilégié sur l'hôte :
+  dans le conteneur : uid=0(root) gid=0(root) groups=0(root),0(root),1(bin),2(daemon),3(sys),4(adm),6(disk),10(wheel),11(floppy),20(dialout),26(tape),27(video)
+  vu par l hôte : 165536     719 sleep 300
+  nouveau volume, propriétaire réel : 165536:165536 /var/lib/docker/165536.165536/volumes/neuf/_data/x
+
+ancien volume (fichiers à 0:0) monté dans un conteneur remappé :
+
+$ docker run --rm -v /var/lib/docker/volumes/donnees/_data:/d alpine:3.20 sh -c ls -ln /d; echo ajout >> /d/fichier
+sh: can't create /d/fichier: Permission denied
+total 4
+-rw-r--r--    1 65534    65534           26 Oct 30 13:21 fichier
+[code retour 1]
+
+no-new-privileges appliqué par défaut :
+
+$ docker run --rm alpine:3.20 grep NoNewPrivs /proc/self/status
+NoNewPrivs:	1
+[code retour 0]
+
+icc=false sur le bridge par défaut :
+  ping 10.201.0.3 depuis un autre conteneur (bridge par défaut) : ÉCHEC
+  ping ct-e depuis un autre conteneur (réseau utilisateur app) : OK
+  sous-réseau du réseau app : 10.201.1.0/24
+
+conteneurs qui ont besoin de l'hôte (cAdvisor, docker-bench...) :
+
+$ docker run --rm --privileged alpine:3.20 true
+docker: Error response from daemon: privileged mode is incompatible with user namespaces.  You must run the container in the host namespace when running privileged mode
+
+Run 'docker run --help' for more information
+[code retour 125]
+
+$ docker run --rm --privileged --userns host alpine:3.20 true
+[code retour 0]
+
+== conteneur tp08-dind et volume supprimés

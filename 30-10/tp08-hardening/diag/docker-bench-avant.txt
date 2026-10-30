@@ -1,0 +1,615 @@
+# --------------------------------------------------------------------------------------------
+# Docker Bench for Security v1.6.0
+#
+# Docker, Inc. (c) 2015-2026
+#
+# Checks for dozens of common best-practices around deploying Docker containers in production.
+# Based on the CIS Docker Benchmark 1.6.0.
+# --------------------------------------------------------------------------------------------
+
+Initializing 2026-10-30T13:05:22
+
+
+Section A - Check results
+
+[INFO] 1 - Host Configuration
+[INFO] 1.1 - Linux Hosts Specific Configuration
+WARNING: bridge-nf-call-iptables is disabled
+WARNING: bridge-nf-call-ip6tables is disabled
+[PASS] 1.1.1 - Ensure a separate partition for containers has been created (Automated)
+[INFO] 1.1.2 - Ensure only trusted users are allowed to control Docker daemon (Automated)
+[INFO]       * Users: alexandre
+[WARN] 1.1.3 - Ensure auditing is configured for the Docker daemon (Automated)
+[WARN] 1.1.4 - Ensure auditing is configured for Docker files and directories -/run/containerd (Automated)
+[WARN] 1.1.5 - Ensure auditing is configured for Docker files and directories - /var/lib/docker (Automated)
+[WARN] 1.1.6 - Ensure auditing is configured for Docker files and directories - /etc/docker (Automated)
+[INFO] 1.1.7 - Ensure auditing is configured for Docker files and directories - docker.service (Automated)
+[INFO]        * File not found
+[INFO] 1.1.8 - Ensure auditing is configured for Docker files and directories - containerd.sock (Automated)
+[INFO]        * File not found
+[INFO] 1.1.9 - Ensure auditing is configured for Docker files and directories - docker.socket (Automated)
+[INFO]        * File not found
+[WARN] 1.1.10 - Ensure auditing is configured for Docker files and directories - /etc/default/docker (Automated)
+[WARN] 1.1.11 - Ensure auditing is configured for Dockerfiles and directories - /etc/docker/daemon.json (Automated)
+[WARN] 1.1.12 - 1.1.12 Ensure auditing is configured for Dockerfiles and directories - /etc/containerd/config.toml (Automated)
+[INFO] 1.1.13 - Ensure auditing is configured for Docker files and directories - /etc/sysconfig/docker (Automated)
+[INFO]        * File not found
+[INFO] 1.1.14 - Ensure auditing is configured for Docker files and directories - /usr/bin/containerd (Automated)
+[INFO]         * File not found
+[INFO] 1.1.15 - Ensure auditing is configured for Docker files and directories - /usr/bin/containerd-shim (Automated)
+[INFO]         * File not found
+[INFO] 1.1.16 - Ensure auditing is configured for Docker files and directories - /usr/bin/containerd-shim-runc-v1 (Automated)
+[INFO]         * File not found
+[INFO] 1.1.17 - Ensure auditing is configured for Docker files and directories - /usr/bin/containerd-shim-runc-v2 (Automated)
+[INFO]         * File not found
+[INFO] 1.1.18 - Ensure auditing is configured for Docker files and directories - /usr/bin/runc (Automated)
+[INFO]         * File not found
+[INFO] 1.2 - General Configuration
+[NOTE] 1.2.1 - Ensure the container host has been Hardened (Manual)
+[PASS] 1.2.2 - Ensure that the version of Docker is up to date (Manual)
+[INFO]        * Using 29.5.2 which is current
+[INFO]        * Check with your operating system vendor for support and security maintenance for Docker
+
+[INFO] 2 - Docker daemon configuration
+[NOTE] 2.1 - Run the Docker daemon as a non-root user, if possible (Manual)
+[WARN] 2.2 - Ensure network traffic is restricted between containers on the default bridge (Scored)
+[WARN] 2.3 - Ensure the logging level is set to 'info' (Scored)
+[PASS] 2.4 - Ensure Docker is allowed to make changes to iptables (Scored)
+[PASS] 2.5 - Ensure insecure registries are not used (Scored)
+[PASS] 2.6 - Ensure aufs storage driver is not used (Scored)
+[INFO] 2.7 - Ensure TLS authentication for Docker daemon is configured (Scored)
+[INFO]      * Docker daemon not listening on TCP
+[INFO] 2.8 - Ensure the default ulimit is configured appropriately (Manual)
+[INFO]      * Default ulimit doesn't appear to be set
+[WARN] 2.9 - Enable user namespace support (Scored)
+[PASS] 2.10 - Ensure the default cgroup usage has been confirmed (Scored)
+[PASS] 2.11 - Ensure base device size is not changed until needed (Scored)
+[WARN] 2.12 - Ensure that authorization for Docker client commands is enabled (Scored)
+[WARN] 2.13 - Ensure centralized and remote logging is configured (Scored)
+[WARN] 2.14 - Ensure containers are restricted from acquiring new privileges (Scored)
+[WARN] 2.15 - Ensure live restore is enabled (Scored)
+[WARN] 2.16 - Ensure Userland Proxy is Disabled (Scored)
+[INFO] 2.17 - Ensure that a daemon-wide custom seccomp profile is applied if appropriate (Manual)
+[INFO] Ensure that experimental features are not implemented in production (Scored) (Deprecated)
+
+[INFO] 3 - Docker daemon configuration files
+[INFO] 3.1 - Ensure that the docker.service file ownership is set to root:root (Automated)
+[INFO]      * File not found
+[INFO] 3.2 - Ensure that docker.service file permissions are appropriately set (Automated)
+[INFO]      * File not found
+[INFO] 3.3 - Ensure that docker.socket file ownership is set to root:root (Automated)
+[INFO]      * File not found
+[INFO] 3.4 - Ensure that docker.socket file permissions are set to 644 or more restrictive (Automated)
+[INFO]      * File not found
+[PASS] 3.5 - Ensure that the /etc/docker directory ownership is set to root:root (Automated)
+[PASS] 3.6 - Ensure that /etc/docker directory permissions are set to 755 or more restrictively (Automated)
+[PASS] 3.7 - Ensure that registry certificate file ownership is set to root:root (Automated)
+[WARN] 3.8 - Ensure that registry certificate file permissions are set to 444 or more restrictively (Automated)
+[WARN]      * Wrong permissions for /etc/docker/certs.d/
+[INFO] 3.9 - Ensure that TLS CA certificate file ownership is set to root:root (Automated)
+[INFO]      * No TLS CA certificate found
+[INFO] 3.10 - Ensure that TLS CA certificate file permissions are set to 444 or more restrictively (Automated)
+[INFO]       * No TLS CA certificate found
+[INFO] 3.11 - Ensure that Docker server certificate file ownership is set to root:root (Automated)
+[INFO]       * No TLS Server certificate found
+[INFO] 3.12 - Ensure that the Docker server certificate file permissions are set to 444 or more restrictively (Automated)
+[INFO]       * No TLS Server certificate found
+[INFO] 3.13 - Ensure that the Docker server certificate key file ownership is set to root:root (Automated)
+[INFO]       * No TLS Key found
+[INFO] 3.14 - Ensure that the Docker server certificate key file permissions are set to 400 (Automated)
+[INFO]       * No TLS Key found
+[PASS] 3.15 - Ensure that the Docker socket file ownership is set to root:docker (Automated)
+[PASS] 3.16 - Ensure that the Docker socket file permissions are set to 660 or more restrictively (Automated)
+[PASS] 3.17 - Ensure that the daemon.json file ownership is set to root:root (Automated)
+[PASS] 3.18 - Ensure that daemon.json file permissions are set to 644 or more restrictive (Automated)
+[PASS] 3.19 - Ensure that the /etc/default/docker file ownership is set to root:root (Automated)
+[PASS] 3.20 - Ensure that the /etc/default/docker file permissions are set to 644 or more restrictively (Automated)
+[INFO] 3.21 - Ensure that the /etc/sysconfig/docker file permissions are set to 644 or more restrictively (Automated)
+[INFO]       * File not found
+[INFO] 3.22 - Ensure that the /etc/sysconfig/docker file ownership is set to root:root (Automated)
+[INFO]       * File not found
+[INFO] 3.23 - Ensure that the Containerd socket file ownership is set to root:root (Automated)
+[INFO]       * File not found
+[INFO] 3.24 - Ensure that the Containerd socket file permissions are set to 660 or more restrictively (Automated)
+[INFO]       * File not found
+
+[INFO] 4 - Container Images and Build File
+[WARN] 4.1 - Ensure that a user for the container has been created (Automated)
+[WARN]      * Running as root: observability-promtail-1
+[WARN]      * Running as root: observability-cadvisor-1
+[WARN]      * Running as root: incident-front-1
+[WARN]      * Running as root: incident-db-1
+[WARN]      * Running as root: incident-redis-1
+[WARN]      * Running as root: shop-backup-1
+[WARN]      * Running as root: shopdata-db-1
+[WARN]      * Running as root: shop-traefik-1
+[WARN]      * Running as root: shop-db-1
+[WARN]      * Running as root: shop-redis-1
+[WARN]      * Running as root: avis-stades-garage-1
+[WARN]      * Running as root: shop-scan-trivy-1
+[WARN]      * Running as root: shop-registry-registry-1
+[WARN]      * Running as root: shop-registry-mirror-1
+[WARN]      * Running as root: tp02-registry
+[WARN]      * Running as root: buildx_buildkit_shop0
+[WARN]      * Running as root: avis-stades-mailpit-1
+[WARN]      * Running as root: avis-stades-postgres-1
+[NOTE] 4.2 - Ensure that containers use only trusted base images (Manual)
+[NOTE] 4.3 - Ensure that unnecessary packages are not installed in the container (Manual)
+[NOTE] 4.4 - Ensure images are scanned and rebuilt to include security patches (Manual)
+[WARN] 4.5 - Ensure Content trust for Docker is Enabled (Automated)
+[WARN] 4.6 - Ensure that HEALTHCHECK instructions have been added to container images (Automated)
+[WARN]      * No Healthcheck found: [tp05-age:latest]
+[WARN]      * No Healthcheck found: [tp05-pg-upgrade:latest]
+[WARN]      * No Healthcheck found: [debian:12-slim]
+[WARN]      * No Healthcheck found: [redis:7.4-alpine redis@sha256:8da19c7399dca900c6822a1cf30f9d2285585e2c4b457ff4095b0f4500054d3f]
+[WARN]      * No Healthcheck found: bccdce047834
+[WARN]      * No Healthcheck found: 2d239c626b44
+[WARN]      * No Healthcheck found: 18ee56a19c88
+[WARN]      * No Healthcheck found: 39c2b96d1846
+[WARN]      * No Healthcheck found: [tp03-tools:latest]
+[WARN]      * No Healthcheck found: [worker:leak-demo]
+[WARN]      * No Healthcheck found: [shopapi:test]
+[WARN]      * No Healthcheck found: [shopapi:legacy]
+[WARN]      * No Healthcheck found: [registry.local:5000/demo:latest registry.local:5000/demo:main-5f6a7b8]
+[WARN]      * No Healthcheck found: [registry.local:5000/demo:latest registry.local:5000/demo:main-5f6a7b8]
+[WARN]      * No Healthcheck found: 641527435535
+[WARN]      * No Healthcheck found: f59c1123452a
+[WARN]      * No Healthcheck found: aeeaee46c222
+[WARN]      * No Healthcheck found: 15deb161aad0
+[WARN]      * No Healthcheck found: cac523cabb5c
+[WARN]      * No Healthcheck found: f83032f7191a
+[WARN]      * No Healthcheck found: [ghcr.io/astral-sh/uv:latest]
+[WARN]      * No Healthcheck found: [node:24-alpine]
+[WARN]      * No Healthcheck found: [node:22-alpine]
+[WARN]      * No Healthcheck found: [postgres:16-alpine]
+[WARN]      * No Healthcheck found: [alpine:3.23]
+[WARN]      * No Healthcheck found: [python:3.12-slim]
+[WARN]      * No Healthcheck found: [registry.local:5000/demo:main-4e5f6a7]
+[WARN]      * No Healthcheck found: [registry.local:5000/demo:main-3d4e5f6]
+[WARN]      * No Healthcheck found: [registry.local:5000/demo:main-2c3d4e5]
+[WARN]      * No Healthcheck found: [registry.local:5000/demo:main-1b2c3d4 registry.local:5000/demo:pr-42]
+[WARN]      * No Healthcheck found: [registry.local:5000/demo:main-1b2c3d4 registry.local:5000/demo:pr-42]
+[WARN]      * No Healthcheck found: 4356f9469a41
+[WARN]      * No Healthcheck found: d31fa3752470
+[WARN]      * No Healthcheck found: 505dd49c8e2b
+[WARN]      * No Healthcheck found: 48656290fd34
+[WARN]      * No Healthcheck found: 9872e686a62d
+[WARN]      * No Healthcheck found: f10d7caecfab
+[WARN]      * No Healthcheck found: [curlimages/curl:8.23.0]
+[WARN]      * No Healthcheck found: [registry.local:5000/demo:main-0a1b2c3]
+[WARN]      * No Healthcheck found: [imresamu/postgis:17-3.6-alpine]
+[WARN]      * No Healthcheck found: [registry.local:5000/demo:2.0.0 registry.local:5000/demo:main-9a8b7c6]
+[WARN]      * No Healthcheck found: [registry.local:5000/demo:2.0.0 registry.local:5000/demo:main-9a8b7c6]
+[WARN]      * No Healthcheck found: e479f9c40c0c
+[WARN]      * No Healthcheck found: [dogs-api:latest]
+[WARN]      * No Healthcheck found: [kennel-mysql:latest]
+[WARN]      * No Healthcheck found: [exercice03:latest]
+[WARN]      * No Healthcheck found: [site-exercice03:latest]
+[WARN]      * No Healthcheck found: [anchore/syft:v1.54.1]
+[WARN]      * No Healthcheck found: [registry.local:5000/demo:1.1.0]
+[WARN]      * No Healthcheck found: [registry.local:5000/demo:1.0.0]
+[WARN]      * No Healthcheck found: [mysql:8.4]
+[WARN]      * No Healthcheck found: [ubuntu:latest]
+[WARN]      * No Healthcheck found: [nginx:alpine]
+[WARN]      * No Healthcheck found: 721873c34ceb
+[WARN]      * No Healthcheck found: [postgres:17-alpine]
+[WARN]      * No Healthcheck found: [dxflrs/garage:v2.4.1]
+[WARN]      * No Healthcheck found: [rclone/rclone@sha256:45401ad7410db1d67ffdb58e19059ad20b0d8e0285a60e38bbec55cc1019c7a5]
+[WARN]      * No Healthcheck found: [zenika/alpine-chrome:124]
+[WARN]      * No Healthcheck found: [traefik:v3.6]
+[WARN]      * No Healthcheck found: [hadolint/hadolint:latest hadolint/hadolint:v2.15.1]
+[WARN]      * No Healthcheck found: [hadolint/hadolint:latest hadolint/hadolint:v2.15.1]
+[WARN]      * No Healthcheck found: [ai-remediation-agent:v1]
+[WARN]      * No Healthcheck found: a39549e211a1
+[WARN]      * No Healthcheck found: d764629ce0dd
+[WARN]      * No Healthcheck found: [postgres:16]
+[WARN]      * No Healthcheck found: ab47a724d0e3
+[WARN]      * No Healthcheck found: [registry.gitlab.com/security-products/secrets:7]
+[WARN]      * No Healthcheck found: [maven:3.9-eclipse-temurin-25]
+[WARN]      * No Healthcheck found: [docker:29.5.2-cli]
+[WARN]      * No Healthcheck found: 090ba77e2958
+[WARN]      * No Healthcheck found: 4b7183ac05f8
+[WARN]      * No Healthcheck found: [moby/buildkit:v0.30.0]
+[WARN]      * No Healthcheck found: [registry.gitlab.com/gitlab-org/gitlab-runner/gitlab-runner-helper:arm64-v18.11.1]
+[WARN]      * No Healthcheck found: [alpine:3.20]
+[WARN]      * No Healthcheck found: [node:20-alpine node:20.20.2-alpine3.23]
+[WARN]      * No Healthcheck found: [node:20-alpine node:20.20.2-alpine3.23]
+[WARN]      * No Healthcheck found: [rhysd/actionlint:1.7.12]
+[WARN]      * No Healthcheck found: [hello-world:latest]
+[WARN]      * No Healthcheck found: [zricethezav/gitleaks:latest zricethezav/gitleaks:v8.30.1]
+[WARN]      * No Healthcheck found: [zricethezav/gitleaks:latest zricethezav/gitleaks:v8.30.1]
+[WARN]      * No Healthcheck found: [aquasec/trivy:0.69.1]
+[WARN]      * No Healthcheck found: [registry:3.0.0]
+[WARN]      * No Healthcheck found: [ghcr.io/graalvm/native-image-community:25]
+[WARN]      * No Healthcheck found: [docker:28.5-dind]
+[WARN]      * No Healthcheck found: [fluent/fluent-bit:4.0.13]
+[WARN]      * No Healthcheck found: [alpine:3.19]
+[WARN]      * No Healthcheck found: [testcontainers/ryuk:0.14.0]
+[WARN]      * No Healthcheck found: [hadolint/hadolint:v2.14.0]
+[WARN]      * No Healthcheck found: [dxflrs/garage@sha256:4c9b34c113e61358466e83fd6e7d66e6d18657ede14b776eb78a93ee8da7cf6a]
+[WARN]      * No Healthcheck found: [grafana/loki:3.5.5]
+[WARN]      * No Healthcheck found: [grafana/promtail:3.5.5]
+[WARN]      * No Healthcheck found: [jaegertracing/jaeger:2.10.0]
+[WARN]      * No Healthcheck found: [hadolint/hadolint:v2.13.1]
+[WARN]      * No Healthcheck found: [grafana/tempo:2.8.2]
+[WARN]      * No Healthcheck found: [grafana/grafana-image-renderer:3.12.9]
+[WARN]      * No Healthcheck found: [nicolaka/netshoot:v0.14]
+[WARN]      * No Healthcheck found: [registry.gitlab.com/gitlab-org/release-cli:latest]
+[WARN]      * No Healthcheck found: [nginx:1.27-alpine]
+[WARN]      * No Healthcheck found: [wagoodman/dive:v0.13.1]
+[WARN]      * No Healthcheck found: [fluent/fluent-bit:3.2.10]
+[WARN]      * No Healthcheck found: [mendhak/http-https-echo:36]
+[WARN]      * No Healthcheck found: [prom/alertmanager:v0.28.1]
+[WARN]      * No Healthcheck found: [quay.io/skopeo/stable:v1.17.0]
+[WARN]      * No Healthcheck found: [rhysd/actionlint:1.7.7]
+[WARN]      * No Healthcheck found: [curlimages/curl:8.11.1]
+[WARN]      * No Healthcheck found: [gcr.io/go-containerregistry/crane:v0.20.3]
+[WARN]      * No Healthcheck found: [traefik:v3.1]
+[WARN]      * No Healthcheck found: [busybox:1.37]
+[WARN]      * No Healthcheck found: [curlimages/curl:8.10.1]
+[WARN]      * No Healthcheck found: [grafana/grafana:11.2.0]
+[WARN]      * No Healthcheck found: [prom/prometheus:v2.54.1]
+[WARN]      * No Healthcheck found: [postgres:16.4-alpine postgres@sha256:5660c2cbfea50c7a9127d17dc4e48543eedd3d7a41a595a2dfa572471e37e64c]
+[WARN]      * No Healthcheck found: [postgres:14.13-alpine]
+[WARN]      * No Healthcheck found: [adminer@sha256:34d37131366c5aa84e1693dbed48593ed6f95fb450b576c1a7a59d3a9c9e8802]
+[WARN]      * No Healthcheck found: [joxit/docker-registry-ui:2.5.7]
+[WARN]      * No Healthcheck found: [wagoodman/dive:v0.12.0]
+[WARN]      * No Healthcheck found: [registry:2.8.3]
+[WARN]      * No Healthcheck found: [busybox:1.36.1]
+[WARN]      * No Healthcheck found: [busybox:1.36.0]
+[WARN]      * No Healthcheck found: [hadolint/hadolint:v2.12.0]
+[WARN]      * No Healthcheck found: [itsthenetwork/nfs-server-alpine@sha256:7fa99ae65c23c5af87dd4300e543a86b119ed15ba61422444207efc7abd0ba20]
+[WARN]      * No Healthcheck found: [gcr.io/distroless/nodejs20-debian12:debug-nonroot]
+[WARN]      * No Healthcheck found: [gcr.io/distroless/nodejs20-debian12:nonroot]
+[WARN]      * No Healthcheck found: [gcr.io/distroless/nodejs24-debian13:nonroot]
+[WARN]      * No Healthcheck found: [gcr.io/distroless/nodejs22-debian12:nonroot]
+[WARN]      * No Healthcheck found: [ghcr.io/sigstore/cosign/cosign:v2.6.1]
+[INFO] 4.7 - Ensure update instructions are not used alone in the Dockerfile (Manual)
+[INFO]      * Update instruction found: [shop/shop-worker:dev]
+[INFO]      * Update instruction found: [worker:uv]
+[INFO]      * Update instruction found: [worker:offline]
+[INFO]      * Update instruction found: [localhost:5050/shop-worker:1.0]
+[INFO]      * Update instruction found: [shop-worker:multi]
+[INFO]      * Update instruction found: [worker:1.0 registry.local:5000/shop-worker:1.0.0]
+[INFO]      * Update instruction found: [worker:1.0 registry.local:5000/shop-worker:1.0.0]
+[INFO]      * Update instruction found: [worker:leak-demo]
+[INFO]      * Update instruction found: [shopapi:legacy]
+[INFO]      * Update instruction found: [python:3.12-slim]
+[INFO]      * Update instruction found: [imresamu/postgis:17-3.6-alpine]
+[INFO]      * Update instruction found: [dogs-api:latest]
+[INFO]      * Update instruction found: [ai-remediation-agent:v1]
+[INFO]      * Update instruction found: [postgres:16]
+[INFO]      * Update instruction found: [maven:3.9-eclipse-temurin-25]
+[INFO]      * Update instruction found: [registry.gitlab.com/gitlab-org/gitlab-runner/gitlab-runner-helper:arm64-v18.11.1]
+[INFO]      * Update instruction found: [grafana/grafana-image-renderer:v4.0.17]
+[INFO]      * Update instruction found: [grafana/promtail:3.5.5]
+[INFO]      * Update instruction found: [quay.io/skopeo/stable:v1.17.0]
+[INFO]      * Update instruction found: [itsthenetwork/nfs-server-alpine@sha256:7fa99ae65c23c5af87dd4300e543a86b119ed15ba61422444207efc7abd0ba20]
+[NOTE] 4.8 - Ensure setuid and setgid permissions are removed (Manual)
+[INFO] 4.9 - Ensure that COPY is used instead of ADD in Dockerfiles (Manual)
+[INFO]      * ADD in image history: [shopapi:legacy]
+[INFO]      * ADD in image history: [maven:3.9-eclipse-temurin-25]
+[INFO]      * ADD in image history: [grafana/promtail:3.5.5]
+[NOTE] 4.10 - Ensure secrets are not stored in Dockerfiles (Manual)
+[NOTE] 4.11 - Ensure only verified packages are installed (Manual)
+[NOTE] 4.12 - Ensure all signed artifacts are validated (Manual)
+
+[INFO] 5 - Container Runtime
+[PASS] 5.1 - Ensure swarm mode is not Enabled, if not needed (Automated)
+[WARN] 5.2 - Ensure that, if applicable, an AppArmor Profile is enabled (Automated)
+[WARN]      * No AppArmorProfile Found: observability-cadvisor-1
+[WARN]      * No AppArmorProfile Found: buildx_buildkit_shop0
+[WARN] 5.3 - Ensure that, if applicable, SELinux security options are set (Automated)
+[WARN]      * No SecurityOptions Found: shop-api-1
+[WARN]      * No SecurityOptions Found: shop-worker-1
+[WARN]      * No SecurityOptions Found: observability-webhook-echo-1
+[WARN]      * No SecurityOptions Found: observability-alertmanager-1
+[WARN]      * No SecurityOptions Found: observability-promtail-1
+[WARN]      * No SecurityOptions Found: shop-adminer-1
+[WARN]      * No SecurityOptions Found: observability-loki-1
+[WARN]      * No SecurityOptions Found: observability-grafana-1
+[WARN]      * No SecurityOptions Found: observability-prometheus-1
+[WARN]      * No SecurityOptions Found: incident-front-1
+[WARN]      * No SecurityOptions Found: incident-api-1
+[WARN]      * No SecurityOptions Found: incident-api-2
+[WARN]      * No SecurityOptions Found: incident-db-1
+[WARN]      * No SecurityOptions Found: incident-redis-1
+[WARN]      * No SecurityOptions Found: shop-backup-1
+[WARN]      * No SecurityOptions Found: shopdata-db-1
+[WARN]      * No SecurityOptions Found: shop-traefik-1
+[WARN]      * No SecurityOptions Found: shop-db-1
+[WARN]      * No SecurityOptions Found: shop-redis-1
+[WARN]      * No SecurityOptions Found: avis-stades-garage-1
+[WARN]      * No SecurityOptions Found: shop-scan-trivy-1
+[WARN]      * No SecurityOptions Found: shop-registry-registry-1
+[WARN]      * No SecurityOptions Found: shop-registry-mirror-1
+[WARN]      * No SecurityOptions Found: tp02-registry
+[WARN]      * No SecurityOptions Found: avis-stades-mailpit-1
+[WARN]      * No SecurityOptions Found: avis-stades-postgres-1
+[PASS] 5.4 - Ensure that Linux kernel capabilities are restricted within containers (Automated)
+[WARN] 5.5 - Ensure that privileged containers are not used (Automated)
+[WARN]      * Container running in Privileged mode: observability-cadvisor-1
+[WARN]      * Container running in Privileged mode: buildx_buildkit_shop0
+[PASS] 5.6 - Ensure sensitive host system directories are not mounted on containers (Automated)
+[PASS] 5.7 - Ensure sshd is not run within containers (Automated)
+[WARN] 5.8 - Ensure privileged ports are not mapped within containers (Automated)
+[WARN]      * Privileged Port in use: 80 in shop-traefik-1
+[WARN] 5.9 - Ensure that only needed ports are open on the container (Manual)
+[WARN]      * Port in use: 3000 in shop-api-1
+[WARN]      * Port in use: 8085 in observability-webhook-echo-1
+[WARN]      * Port in use: 9093 in observability-alertmanager-1
+[WARN]      * Port in use: 3001 in observability-grafana-1
+[WARN]      * Port in use: 9090 in observability-prometheus-1
+[WARN]      * Port in use: 8081 in incident-front-1
+[WARN]      * Port in use: 80 in shop-traefik-1
+[WARN]      * Port in use: 8080 in shop-traefik-1
+[WARN]      * Port in use: 5433 in shop-db-1
+[WARN]      * Port in use: 3900 in avis-stades-garage-1
+[WARN]      * Port in use: 3903 in avis-stades-garage-1
+[WARN]      * Port in use: 4954 in shop-scan-trivy-1
+[WARN]      * Port in use: 5000 in shop-registry-registry-1
+[WARN]      * Port in use: 5001 in shop-registry-mirror-1
+[WARN]      * Port in use: 5050 in tp02-registry
+[WARN]      * Port in use: 1025 in avis-stades-mailpit-1
+[WARN]      * Port in use: 8025 in avis-stades-mailpit-1
+[WARN]      * Port in use: 5432 in avis-stades-postgres-1
+[WARN] 5.10 - Ensure that the host's network namespace is not shared (Automated)
+[WARN]      * Container running with networking mode 'host': buildx_buildkit_shop0
+[WARN] 5.11 - Ensure that the memory usage for containers is limited (Automated)
+[WARN]       * Container running without memory restrictions: shop-api-1
+[WARN]       * Container running without memory restrictions: shop-worker-1
+[WARN]       * Container running without memory restrictions: observability-webhook-echo-1
+[WARN]       * Container running without memory restrictions: observability-alertmanager-1
+[WARN]       * Container running without memory restrictions: observability-promtail-1
+[WARN]       * Container running without memory restrictions: shop-adminer-1
+[WARN]       * Container running without memory restrictions: observability-loki-1
+[WARN]       * Container running without memory restrictions: observability-grafana-1
+[WARN]       * Container running without memory restrictions: observability-prometheus-1
+[WARN]       * Container running without memory restrictions: observability-cadvisor-1
+[WARN]       * Container running without memory restrictions: incident-front-1
+[WARN]       * Container running without memory restrictions: incident-api-1
+[WARN]       * Container running without memory restrictions: incident-api-2
+[WARN]       * Container running without memory restrictions: incident-db-1
+[WARN]       * Container running without memory restrictions: incident-redis-1
+[WARN]       * Container running without memory restrictions: shop-backup-1
+[WARN]       * Container running without memory restrictions: shopdata-db-1
+[WARN]       * Container running without memory restrictions: shop-traefik-1
+[WARN]       * Container running without memory restrictions: shop-db-1
+[WARN]       * Container running without memory restrictions: shop-redis-1
+[WARN]       * Container running without memory restrictions: avis-stades-garage-1
+[WARN]       * Container running without memory restrictions: shop-scan-trivy-1
+[WARN]       * Container running without memory restrictions: shop-registry-registry-1
+[WARN]       * Container running without memory restrictions: shop-registry-mirror-1
+[WARN]       * Container running without memory restrictions: tp02-registry
+[WARN]       * Container running without memory restrictions: buildx_buildkit_shop0
+[WARN]       * Container running without memory restrictions: avis-stades-mailpit-1
+[WARN]       * Container running without memory restrictions: avis-stades-postgres-1
+[WARN] 5.12 - Ensure that CPU priority is set appropriately on containers (Automated)
+[WARN]       * Container running without CPU restrictions: shop-api-1
+[WARN]       * Container running without CPU restrictions: shop-worker-1
+[WARN]       * Container running without CPU restrictions: observability-webhook-echo-1
+[WARN]       * Container running without CPU restrictions: observability-alertmanager-1
+[WARN]       * Container running without CPU restrictions: observability-promtail-1
+[WARN]       * Container running without CPU restrictions: shop-adminer-1
+[WARN]       * Container running without CPU restrictions: observability-loki-1
+[WARN]       * Container running without CPU restrictions: observability-grafana-1
+[WARN]       * Container running without CPU restrictions: observability-prometheus-1
+[WARN]       * Container running without CPU restrictions: observability-cadvisor-1
+[WARN]       * Container running without CPU restrictions: incident-front-1
+[WARN]       * Container running without CPU restrictions: incident-api-1
+[WARN]       * Container running without CPU restrictions: incident-api-2
+[WARN]       * Container running without CPU restrictions: incident-db-1
+[WARN]       * Container running without CPU restrictions: incident-redis-1
+[WARN]       * Container running without CPU restrictions: shop-backup-1
+[WARN]       * Container running without CPU restrictions: shopdata-db-1
+[WARN]       * Container running without CPU restrictions: shop-traefik-1
+[WARN]       * Container running without CPU restrictions: shop-db-1
+[WARN]       * Container running without CPU restrictions: shop-redis-1
+[WARN]       * Container running without CPU restrictions: avis-stades-garage-1
+[WARN]       * Container running without CPU restrictions: shop-scan-trivy-1
+[WARN]       * Container running without CPU restrictions: shop-registry-registry-1
+[WARN]       * Container running without CPU restrictions: shop-registry-mirror-1
+[WARN]       * Container running without CPU restrictions: tp02-registry
+[WARN]       * Container running without CPU restrictions: buildx_buildkit_shop0
+[WARN]       * Container running without CPU restrictions: avis-stades-mailpit-1
+[WARN]       * Container running without CPU restrictions: avis-stades-postgres-1
+[WARN] 5.13 - Ensure that the container's root filesystem is mounted as read only (Automated)
+[WARN]       * Container running with root FS mounted R/W: shop-api-1
+[WARN]       * Container running with root FS mounted R/W: shop-worker-1
+[WARN]       * Container running with root FS mounted R/W: observability-webhook-echo-1
+[WARN]       * Container running with root FS mounted R/W: observability-alertmanager-1
+[WARN]       * Container running with root FS mounted R/W: observability-promtail-1
+[WARN]       * Container running with root FS mounted R/W: shop-adminer-1
+[WARN]       * Container running with root FS mounted R/W: observability-loki-1
+[WARN]       * Container running with root FS mounted R/W: observability-grafana-1
+[WARN]       * Container running with root FS mounted R/W: observability-prometheus-1
+[WARN]       * Container running with root FS mounted R/W: observability-cadvisor-1
+[WARN]       * Container running with root FS mounted R/W: incident-front-1
+[WARN]       * Container running with root FS mounted R/W: incident-api-1
+[WARN]       * Container running with root FS mounted R/W: incident-api-2
+[WARN]       * Container running with root FS mounted R/W: incident-db-1
+[WARN]       * Container running with root FS mounted R/W: incident-redis-1
+[WARN]       * Container running with root FS mounted R/W: shop-backup-1
+[WARN]       * Container running with root FS mounted R/W: shopdata-db-1
+[WARN]       * Container running with root FS mounted R/W: shop-traefik-1
+[WARN]       * Container running with root FS mounted R/W: shop-db-1
+[WARN]       * Container running with root FS mounted R/W: shop-redis-1
+[WARN]       * Container running with root FS mounted R/W: avis-stades-garage-1
+[WARN]       * Container running with root FS mounted R/W: shop-scan-trivy-1
+[WARN]       * Container running with root FS mounted R/W: shop-registry-registry-1
+[WARN]       * Container running with root FS mounted R/W: shop-registry-mirror-1
+[WARN]       * Container running with root FS mounted R/W: tp02-registry
+[WARN]       * Container running with root FS mounted R/W: buildx_buildkit_shop0
+[WARN]       * Container running with root FS mounted R/W: avis-stades-mailpit-1
+[WARN]       * Container running with root FS mounted R/W: avis-stades-postgres-1
+[WARN] 5.14 - Ensure that incoming container traffic is bound to a specific host interface (Automated)
+[WARN]       * Port being bound to wildcard IP: 0.0.0.0 in incident-front-1
+[WARN]       * Port being bound to wildcard IP: 0.0.0.0 in shop-traefik-1
+[WARN]       * Port being bound to wildcard IP: 0.0.0.0 in shop-scan-trivy-1
+[WARN]       * Port being bound to wildcard IP: 0.0.0.0 in shop-registry-registry-1
+[WARN]       * Port being bound to wildcard IP: 0.0.0.0 in shop-registry-mirror-1
+[WARN]       * Port being bound to wildcard IP: 0.0.0.0 in tp02-registry
+[WARN] 5.15 - Ensure that the 'on-failure' container restart policy is set to '5' (Automated)
+[WARN]       * MaximumRetryCount is not set to 5: shop-api-1
+[WARN]       * MaximumRetryCount is not set to 5: shop-worker-1
+[WARN]       * MaximumRetryCount is not set to 5: observability-webhook-echo-1
+[WARN]       * MaximumRetryCount is not set to 5: observability-alertmanager-1
+[WARN]       * MaximumRetryCount is not set to 5: observability-promtail-1
+[WARN]       * MaximumRetryCount is not set to 5: shop-adminer-1
+[WARN]       * MaximumRetryCount is not set to 5: observability-loki-1
+[WARN]       * MaximumRetryCount is not set to 5: observability-grafana-1
+[WARN]       * MaximumRetryCount is not set to 5: observability-prometheus-1
+[WARN]       * MaximumRetryCount is not set to 5: observability-cadvisor-1
+[WARN]       * MaximumRetryCount is not set to 5: incident-front-1
+[WARN]       * MaximumRetryCount is not set to 5: incident-api-1
+[WARN]       * MaximumRetryCount is not set to 5: incident-api-2
+[WARN]       * MaximumRetryCount is not set to 5: incident-db-1
+[WARN]       * MaximumRetryCount is not set to 5: incident-redis-1
+[WARN]       * MaximumRetryCount is not set to 5: shop-backup-1
+[WARN]       * MaximumRetryCount is not set to 5: shopdata-db-1
+[WARN]       * MaximumRetryCount is not set to 5: shop-traefik-1
+[WARN]       * MaximumRetryCount is not set to 5: shop-db-1
+[WARN]       * MaximumRetryCount is not set to 5: shop-redis-1
+[WARN]       * MaximumRetryCount is not set to 5: avis-stades-garage-1
+[WARN]       * MaximumRetryCount is not set to 5: shop-scan-trivy-1
+[WARN]       * MaximumRetryCount is not set to 5: shop-registry-registry-1
+[WARN]       * MaximumRetryCount is not set to 5: shop-registry-mirror-1
+[WARN]       * MaximumRetryCount is not set to 5: tp02-registry
+[WARN]       * MaximumRetryCount is not set to 5: buildx_buildkit_shop0
+[WARN]       * MaximumRetryCount is not set to 5: avis-stades-mailpit-1
+[WARN]       * MaximumRetryCount is not set to 5: avis-stades-postgres-1
+[PASS] 5.16 - Ensure that the host's process namespace is not shared (Automated)
+[PASS] 5.17 - Ensure that the host's IPC namespace is not shared (Automated)
+[INFO] 5.18 - Ensure that host devices are not directly exposed to containers (Manual)
+[INFO]       * Container has devices exposed directly: observability-cadvisor-1
+[INFO] 5.19 - Ensure that the default ulimit is overwritten at runtime if needed (Manual)
+[INFO]       * Container no default ulimit override: shop-api-1
+[INFO]       * Container no default ulimit override: shop-worker-1
+[INFO]       * Container no default ulimit override: observability-webhook-echo-1
+[INFO]       * Container no default ulimit override: observability-alertmanager-1
+[INFO]       * Container no default ulimit override: observability-promtail-1
+[INFO]       * Container no default ulimit override: shop-adminer-1
+[INFO]       * Container no default ulimit override: observability-loki-1
+[INFO]       * Container no default ulimit override: observability-grafana-1
+[INFO]       * Container no default ulimit override: observability-prometheus-1
+[INFO]       * Container no default ulimit override: observability-cadvisor-1
+[INFO]       * Container no default ulimit override: incident-front-1
+[INFO]       * Container no default ulimit override: incident-api-1
+[INFO]       * Container no default ulimit override: incident-api-2
+[INFO]       * Container no default ulimit override: incident-db-1
+[INFO]       * Container no default ulimit override: incident-redis-1
+[INFO]       * Container no default ulimit override: shop-backup-1
+[INFO]       * Container no default ulimit override: shopdata-db-1
+[INFO]       * Container no default ulimit override: shop-traefik-1
+[INFO]       * Container no default ulimit override: shop-db-1
+[INFO]       * Container no default ulimit override: shop-redis-1
+[INFO]       * Container no default ulimit override: avis-stades-garage-1
+[INFO]       * Container no default ulimit override: shop-scan-trivy-1
+[INFO]       * Container no default ulimit override: shop-registry-registry-1
+[INFO]       * Container no default ulimit override: shop-registry-mirror-1
+[INFO]       * Container no default ulimit override: tp02-registry
+[INFO]       * Container no default ulimit override: buildx_buildkit_shop0
+[INFO]       * Container no default ulimit override: avis-stades-mailpit-1
+[INFO]       * Container no default ulimit override: avis-stades-postgres-1
+[PASS] 5.20 - Ensure mount propagation mode is not set to shared (Automated)
+[PASS] 5.21 - Ensure that the host's UTS namespace is not shared (Automated)
+[PASS] 5.22 - Ensure the default seccomp profile is not Disabled (Automated)
+[NOTE] 5.23 - Ensure that docker exec commands are not used with the privileged option (Automated)
+[NOTE] 5.24 - Ensure that docker exec commands are not used with the user=root option (Manual)
+[WARN] 5.25 - Ensure that cgroup usage is confirmed (Automated)
+[WARN]       * Confirm cgroup usage: buildx_buildkit_shop0
+[WARN] 5.26 - Ensure that the container is restricted from acquiring additional privileges (Automated)
+[WARN]       * Privileges not restricted: shop-api-1
+[WARN]       * Privileges not restricted: shop-worker-1
+[WARN]       * Privileges not restricted: observability-webhook-echo-1
+[WARN]       * Privileges not restricted: observability-alertmanager-1
+[WARN]       * Privileges not restricted: observability-promtail-1
+[WARN]       * Privileges not restricted: shop-adminer-1
+[WARN]       * Privileges not restricted: observability-loki-1
+[WARN]       * Privileges not restricted: observability-grafana-1
+[WARN]       * Privileges not restricted: observability-prometheus-1
+[WARN]       * Privileges not restricted: observability-cadvisor-1
+[WARN]       * Privileges not restricted: incident-front-1
+[WARN]       * Privileges not restricted: incident-api-1
+[WARN]       * Privileges not restricted: incident-api-2
+[WARN]       * Privileges not restricted: incident-db-1
+[WARN]       * Privileges not restricted: incident-redis-1
+[WARN]       * Privileges not restricted: shop-backup-1
+[WARN]       * Privileges not restricted: shopdata-db-1
+[WARN]       * Privileges not restricted: shop-traefik-1
+[WARN]       * Privileges not restricted: shop-db-1
+[WARN]       * Privileges not restricted: shop-redis-1
+[WARN]       * Privileges not restricted: avis-stades-garage-1
+[WARN]       * Privileges not restricted: shop-scan-trivy-1
+[WARN]       * Privileges not restricted: shop-registry-registry-1
+[WARN]       * Privileges not restricted: shop-registry-mirror-1
+[WARN]       * Privileges not restricted: tp02-registry
+[WARN]       * Privileges not restricted: buildx_buildkit_shop0
+[WARN]       * Privileges not restricted: avis-stades-mailpit-1
+[WARN]       * Privileges not restricted: avis-stades-postgres-1
+[WARN] 5.27 - Ensure that container health is checked at runtime (Automated)
+[WARN]       * Health check not set: observability-webhook-echo-1
+[WARN]       * Health check not set: avis-stades-garage-1
+[WARN]       * Health check not set: tp02-registry
+[WARN]       * Health check not set: buildx_buildkit_shop0
+[INFO] 5.28 - Ensure that Docker commands always make use of the latest version of their image (Manual)
+[WARN] 5.29 - Ensure that the PIDs cgroup limit is used (Automated)
+[WARN]       * PIDs limit not set: shop-api-1
+[WARN]       * PIDs limit not set: shop-worker-1
+[WARN]       * PIDs limit not set: observability-webhook-echo-1
+[WARN]       * PIDs limit not set: observability-alertmanager-1
+[WARN]       * PIDs limit not set: observability-promtail-1
+[WARN]       * PIDs limit not set: shop-adminer-1
+[WARN]       * PIDs limit not set: observability-loki-1
+[WARN]       * PIDs limit not set: observability-grafana-1
+[WARN]       * PIDs limit not set: observability-prometheus-1
+[WARN]       * PIDs limit not set: observability-cadvisor-1
+[WARN]       * PIDs limit not set: incident-front-1
+[WARN]       * PIDs limit not set: incident-api-1
+[WARN]       * PIDs limit not set: incident-api-2
+[WARN]       * PIDs limit not set: incident-db-1
+[WARN]       * PIDs limit not set: incident-redis-1
+[WARN]       * PIDs limit not set: shop-backup-1
+[WARN]       * PIDs limit not set: shopdata-db-1
+[WARN]       * PIDs limit not set: shop-traefik-1
+[WARN]       * PIDs limit not set: shop-db-1
+[WARN]       * PIDs limit not set: shop-redis-1
+[WARN]       * PIDs limit not set: avis-stades-garage-1
+[WARN]       * PIDs limit not set: shop-scan-trivy-1
+[WARN]       * PIDs limit not set: shop-registry-registry-1
+[WARN]       * PIDs limit not set: shop-registry-mirror-1
+[WARN]       * PIDs limit not set: tp02-registry
+[WARN]       * PIDs limit not set: buildx_buildkit_shop0
+[WARN]       * PIDs limit not set: avis-stades-mailpit-1
+[WARN]       * PIDs limit not set: avis-stades-postgres-1
+[INFO] 5.30 - Ensure that Docker's default bridge 'docker0' is not used (Manual)
+[INFO]       * Container in docker0 network: tp02-registry
+[PASS] 5.31 - Ensure that the host's user namespaces are not shared (Automated)
+[WARN] 5.32 - Ensure that the Docker socket is not mounted inside any containers (Automated)
+[WARN]       * Docker socket shared: observability-promtail-1
+[WARN]       * Docker socket shared: shop-traefik-1
+
+[INFO] 6 - Docker Security Operations
+[INFO] 6.1 - Ensure that image sprawl is avoided (Manual)
+[INFO]      * There are currently: 145 images
+[INFO]      * Only 36 out of 145 are in use
+[INFO] 6.2 - Ensure that container sprawl is avoided (Manual)
+[INFO]      * There are currently a total of 36 containers, with 29 of them currently running
+
+[INFO] 7 - Docker Swarm Configuration
+[PASS] 7.1 - Ensure that the minimum number of manager nodes have been created in a swarm (Automated) (Swarm mode not enabled)
+[PASS] 7.2 - Ensure that swarm services are bound to a specific host interface (Automated) (Swarm mode not enabled)
+[PASS] 7.3 - Ensure that all Docker swarm overlay networks are encrypted (Automated)
+[PASS] 7.4 - Ensure that Docker's secret management commands are used for managing secrets in a swarm cluster (Manual) (Swarm mode not enabled)
+[PASS] 7.5 - Ensure that swarm manager is run in auto-lock mode (Automated) (Swarm mode not enabled)
+[PASS] 7.6 - Ensure that the swarm manager auto-lock key is rotated periodically (Manual) (Swarm mode not enabled)
+[PASS] 7.7 - Ensure that node certificates are rotated as appropriate (Manual) (Swarm mode not enabled)
+[PASS] 7.8 - Ensure that CA certificates are rotated as appropriate (Manual) (Swarm mode not enabled)
+[PASS] 7.9 - Ensure that management plane traffic is separated from data plane traffic (Manual) (Swarm mode not enabled)
+
+
+Section C - Score
+
+[INFO] Checks: 117
+[INFO] Score: -6
+

@@ -1,0 +1,188 @@
+# Surcharge durcie de la stack TP04 :
+#   docker compose -f compose.yml -f ../../30-10/tp08-hardening/compose.hardened.yml --profile tools up -d --wait
+# Chaque directive est suivie de la menace qu'elle réduit.
+
+x-hardening: &hardening
+  # Rootfs en lecture seule : pas de dépôt de binaire, de webshell ou de persistance dans l'image.
+  # Les seules zones inscriptibles sont les tmpfs déclarés par service (montés noexec) et les volumes de données.
+  read_only: true
+  # Retire les 14 capabilities par défaut (CHOWN, DAC_OVERRIDE, SETUID, NET_RAW, MKNOD...) :
+  # plus de chown/chmod arbitraire, plus de socket raw (usurpation ARP/ICMP), plus de mknod.
+  # Aucun service n'en réajoute : tous tournent sous un uid non root qui n'en a pas besoin.
+  cap_drop:
+    - ALL
+  security_opt:
+    # Un binaire setuid/setgid de l'image ne permet plus de redevenir root (execve ne gagne aucun privilège).
+    - no-new-privileges:true
+
+services:
+  # Proxy filtrant devant la socket Docker : Traefik ne parle plus à la socket, seulement à ce proxy.
+  socket-proxy:
+    <<: *hardening
+    image: tecnativa/docker-socket-proxy:v0.4.1@sha256:3400c429c5f9e1b21d62130fb93b16e2e772d4fb7695bd52fc2b743800b9fe9e
+    restart: unless-stopped
+    # haproxy tourne en nobody, avec seulement le groupe propriétaire de la socket (docker, gid 991 dans la VM Colima) :
+    # une faille dans le proxy ne donne pas root dans le conteneur.
+    user: "65534:${DOCKER_SOCKET_GID:-991}"
+    environment:
+      # Seuls les appels en lecture utiles à Traefik sont ouverts ; tout le reste répond 403.
+      CONTAINERS: "1"
+      EVENTS: "1"
+      PING: "1"
+      VERSION: "1"
+      # Aucune écriture : pas de création, d'arrêt, d'exec ni de suppression de conteneur via le proxy.
+      POST: "0"
+      LOG_LEVEL: warning
+    volumes:
+      # Risque résiduel accepté (label ci-dessous) : la socket reste montée ici, en lecture seule, derrière le filtre.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    tmpfs:
+      # haproxy génère sa configuration et son fichier PID au démarrage : seuls /tmp et /run sont inscriptibles.
+      - /tmp:uid=65534,gid=${DOCKER_SOCKET_GID:-991},mode=0700
+      - /run:uid=65534,gid=${DOCKER_SOCKET_GID:-991},mode=0700
+    networks:
+      # Réseau internal : le proxy n'est joignable que par Traefik, sans sortie Internet ni port publié.
+      - socket
+    deploy:
+      resources:
+        limits:
+          # Bornes PID, CPU et mémoire : une fork bomb ou une fuite reste confinée au conteneur.
+          pids: 64
+          cpus: "0.25"
+          memory: 64M
+    logging:
+      # Logs rotatifs : pas de disque plein.
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2375/_ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+      start_interval: 1s
+    labels:
+      # Exception tracée pour audit.sh : la socket montée est assumée et visible dans le compose.
+      tp08.audit.accept: docker_sock
+
+  traefik:
+    <<: *hardening
+    # Plus root : une compromission de Traefik (exposé sur Internet) part de nobody.
+    user: "65534:65534"
+    sysctls:
+      # Écouter sur :80 sans root ni NET_BIND_SERVICE. Le seuil ne vaut que dans l'espace réseau du conteneur.
+      net.ipv4.ip_unprivileged_port_start: 80
+    environment:
+      # Découverte des conteneurs via le proxy filtrant au lieu de la socket.
+      TRAEFIK_PROVIDERS_DOCKER_ENDPOINT: tcp://socket-proxy:2375
+    # Retire le montage de /var/run/docker.sock : un Traefik compromis n'est plus root sur l'hôte.
+    volumes: !reset []
+    tmpfs:
+      - /tmp:uid=65534,gid=65534,mode=0700
+    networks:
+      - front
+      - socket
+    depends_on:
+      socket-proxy:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          # Bornes : déni de service par saturation de Traefik limité à son conteneur.
+          pids: 128
+          cpus: "0.50"
+          memory: 128M
+
+  db:
+    <<: *hardening
+    # PostgreSQL démarre directement en postgres (70) : plus d'étape root dans l'entrypoint,
+    # donc aucune capability nécessaire (en root il faudrait CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID).
+    user: "70:70"
+    tmpfs:
+      # Socket Unix et fichiers temporaires de PostgreSQL ; les données restent dans le volume pgdata.
+      - /var/run/postgresql:uid=70,gid=70,mode=0775
+      - /tmp:uid=70,gid=70,mode=1777
+    deploy:
+      resources:
+        limits:
+          # Bornes : une requête ou une connexion folle ne peut pas affamer l'hôte.
+          pids: 128
+          cpus: "1.00"
+          memory: 512M
+
+  redis:
+    <<: *hardening
+    # Redis en utilisateur non root (redis:redis) : ses données /data appartiennent déjà à 999:1000.
+    user: "999:1000"
+    deploy:
+      resources:
+        limits:
+          # Bornes : un cache qui grossit sans fin est tué avant de saturer la machine.
+          pids: 64
+          cpus: "0.50"
+          memory: 256M
+
+  api:
+    <<: *hardening
+    # Uid explicite (celui de l'image) : l'audit et la revue voient qu'on ne tourne pas en root.
+    user: "1000:1000"
+    tmpfs:
+      - /tmp:uid=1000,gid=1000,mode=0700
+    deploy:
+      resources:
+        limits:
+          # Bornes : fuite mémoire ou fork bomb dans l'API confinée (OOM kill + redémarrage).
+          pids: 128
+          cpus: "0.50"
+          memory: 256M
+
+  worker:
+    <<: *hardening
+    # Uid explicite de l'image : pas de root.
+    user: "10001:10001"
+    environment:
+      # Pas de tentative d'écriture de .pyc sur le rootfs en lecture seule.
+      PYTHONDONTWRITEBYTECODE: "1"
+    tmpfs:
+      - /tmp:uid=10001,gid=10001,mode=0700
+    deploy:
+      resources:
+        limits:
+          # Bornes : un message empoisonné qui boucle ne fait tomber que le worker.
+          pids: 64
+          cpus: "0.50"
+          memory: 256M
+
+  adminer:
+    <<: *hardening
+    # Outil d'administration (profil tools) : utilisateur non root de l'image.
+    user: adminer
+    tmpfs:
+      # Sessions PHP.
+      - /tmp:mode=1777
+    deploy:
+      resources:
+        limits:
+          pids: 64
+          cpus: "0.25"
+          memory: 128M
+
+  migrate:
+    <<: *hardening
+    # Migrations (profil ops) : psql n'a pas besoin de root.
+    user: "70:70"
+    tmpfs:
+      - /tmp:uid=70,gid=70,mode=0700
+    deploy:
+      resources:
+        limits:
+          pids: 32
+          cpus: "0.25"
+          memory: 128M
+
+networks:
+  # Réseau dédié au dialogue Traefik <-> proxy de socket, sans sortie vers l'extérieur.
+  socket:
+    internal: true

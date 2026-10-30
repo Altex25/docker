@@ -1,0 +1,192 @@
+################ --read-only
+
+$ docker run --rm --read-only alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc touch /x
+touch: /x: Read-only file system
+[code retour 1]
+
+$ docker run --rm --read-only --tmpfs /tmp alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c touch /tmp/x && ls -l /tmp/x && grep " /tmp " /proc/mounts
+-rw-r--r--    1 root     root             0 Oct 30 13:10 /tmp/x
+tmpfs /tmp tmpfs rw,nosuid,nodev,noexec,relatime,inode64 0 0
+[code retour 0]
+
+################ --cap-drop ALL
+
+$ docker run --rm alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c grep CapEff /proc/self/status
+CapEff:	00000000a80425fb
+[code retour 0]
+
+$ docker run --rm --cap-drop ALL alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c grep CapEff /proc/self/status
+CapEff:	0000000000000000
+[code retour 0]
+
+ping : Docker règle net.ipv4.ping_group_range pour autoriser l'ICMP « datagramme » sans NET_RAW
+
+$ docker run --rm --cap-drop ALL alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c cat /proc/sys/net/ipv4/ping_group_range; ping -c1 -W2 1.1.1.1 | tail -1
+0	2147483647
+round-trip min/avg/max = 0.103/0.103/0.103 ms
+[code retour 0]
+
+$ docker run --rm --cap-drop ALL --sysctl net.ipv4.ping_group_range=1 0 alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc ping -c1 -W2 1.1.1.1
+PING 1.1.1.1 (1.1.1.1): 56 data bytes
+ping: permission denied (are you root?)
+[code retour 1]
+
+$ docker run --rm --cap-drop ALL --cap-add NET_RAW --sysctl net.ipv4.ping_group_range=1 0 alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c ping -c1 -W2 1.1.1.1 | tail -1
+round-trip min/avg/max = 0.201/0.201/0.201 ms
+[code retour 0]
+
+chown
+
+$ docker run --rm --cap-drop ALL alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c touch /f && chown 1000 /f
+chown: /f: Operation not permitted
+[code retour 1]
+
+$ docker run --rm --cap-drop ALL --cap-add CHOWN alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c touch /f && chown 1000 /f && ls -ln /f
+-rw-r--r--    1 1000     0                0 Oct 30 13:10 /f
+[code retour 0]
+
+apk add : curl (fichiers root) puis nginx (crée un utilisateur et fait des chown)
+  cap_add=[                            ] apk add curl  : (code apk 0)
+  cap_add=[                            ] apk add nginx : install: can't change ownership of /run/nginx: Operation not permitted ERROR: 4 errors updating directory permissions (code apk 0)
+  cap_add=[CHOWN                       ] apk add nginx : install: can't change permissions of /run/nginx: Operation not permitted ERROR: 2 errors updating directory permissions (code apk 0)
+  cap_add=[CHOWN,FOWNER                ] apk add nginx : ERROR: 2 errors updating directory permissions (code apk 0)
+  cap_add=[CHOWN,FOWNER,DAC_OVERRIDE   ] apk add nginx : (code apk 0)
+
+################ --security-opt no-new-privileges
+
+$ docker run --rm alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc ls -l /bin/busybox
+-rwxr-xr-x    1 root     root        919232 Nov 23  2025 /bin/busybox
+[code retour 0]
+
+$ docker run --rm debian:12-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3 ls -l /usr/bin/passwd /bin/su
+-rwsr-xr-x 1 root root 133312 Nov 21  2024 /bin/su
+-rwsr-xr-x 1 root root  72048 Dec 14  2025 /usr/bin/passwd
+[code retour 0]
+
+$ docker run --rm debian:12-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3 sh -c cp /usr/bin/id /usr/local/bin/suid-id && chmod u+s /usr/local/bin/suid-id && su nobody -s /bin/sh -c "grep NoNewPrivs /proc/self/status; /usr/local/bin/suid-id"
+NoNewPrivs:	0
+uid=65534(nobody) gid=65534(nogroup) euid=0(root) groups=65534(nogroup)
+[code retour 0]
+
+$ docker run --rm --security-opt no-new-privileges debian:12-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3 sh -c cp /usr/bin/id /usr/local/bin/suid-id && chmod u+s /usr/local/bin/suid-id && su nobody -s /bin/sh -c "grep NoNewPrivs /proc/self/status; /usr/local/bin/suid-id"
+NoNewPrivs:	1
+uid=65534(nobody) gid=65534(nogroup) groups=65534(nogroup)
+[code retour 0]
+
+$ docker run --rm --user 65534 --security-opt no-new-privileges debian:12-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3 su root -c id
+Password: su: Authentication failure
+[code retour 1]
+
+################ --pids-limit 50
+
+$ docker run --rm --pids-limit 50 alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c for i in $(seq 100); do sleep 60 & done; sleep 1; ps | wc -l
+sh: can't fork: Resource temporarily unavailable
+[code retour 2]
+
+$ docker run --rm --pids-limit 50 python:3.12-alpine@sha256:e6dae589c1c05976188fd3bd019afd091445fc533ed2ea29001beddc7368a9c8 python -c import os, time
+ok, err = 0, None
+for i in range(100):
+    try:
+        if os.fork() == 0:
+            time.sleep(30)
+            os._exit(0)
+        ok += 1
+    except OSError as e:
+        err = e
+cur = open("/sys/fs/cgroup/pids.current").read().strip()
+mx = open("/sys/fs/cgroup/pids.max").read().strip()
+print(f"fork réussis : {ok}/100, dernière erreur : {err}, pids.current={cur}, pids.max={mx}")
+fork réussis : 49/100, dernière erreur : [Errno 11] Resource temporarily unavailable, pids.current=50, pids.max=50
+[code retour 0]
+
+$ docker run --rm python:3.12-alpine@sha256:e6dae589c1c05976188fd3bd019afd091445fc533ed2ea29001beddc7368a9c8 python -c import os, time
+ok, err = 0, None
+for i in range(100):
+    try:
+        if os.fork() == 0:
+            time.sleep(30)
+            os._exit(0)
+        ok += 1
+    except OSError as e:
+        err = e
+cur = open("/sys/fs/cgroup/pids.current").read().strip()
+mx = open("/sys/fs/cgroup/pids.max").read().strip()
+print(f"fork réussis : {ok}/100, dernière erreur : {err}, pids.current={cur}, pids.max={mx}")
+fork réussis : 100/100, dernière erreur : None, pids.current=101, pids.max=max
+[code retour 0]
+
+$ docker run -d --pids-limit 50 alpine sleep 300 ; 60 x docker exec -d sleep 300
+processus vus par docker top : 61 ; cgroup : pids.max=50 pids.current=61
+
+################ --memory 32m
+
+$ docker inspect b1be4a1448d884e956029df72b5ff32fbc7ad8527b51b21d9579aea871b7de05 --format OOMKilled={{.State.OOMKilled}} ExitCode={{.State.ExitCode}} limite={{.HostConfig.Memory}}
+OOMKilled=true ExitCode=137 limite=33554432
+[code retour 0]
+
+$ docker run --rm --memory 256m python:3.12-alpine@sha256:e6dae589c1c05976188fd3bd019afd091445fc533ed2ea29001beddc7368a9c8 python -c x = 'a' * 100_000_000; print(len(x))
+100000000
+[code retour 0]
+
+################ --user 1000
+
+$ docker run --rm --user 1000 alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc id
+uid=1000 gid=0(root) groups=0(root)
+[code retour 0]
+
+$ docker run --rm --user 1000:1000 alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc id
+uid=1000 gid=1000 groups=1000
+[code retour 0]
+
+$ docker run --rm -v tp08-vol:/data alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c touch /data/ecrit-par-root && ls -ln /data
+total 0
+-rw-r--r--    1 0        0                0 Oct 30 13:10 ecrit-par-root
+[code retour 0]
+
+$ docker run --rm --user 1000:1000 -v tp08-vol:/data alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc touch /data/ecrit-par-1000
+touch: /data/ecrit-par-1000: Permission denied
+[code retour 1]
+
+$ docker run --rm -v tp08-vol:/data alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc chown -R 1000:1000 /data
+[code retour 0]
+
+$ docker run --rm --user 1000:1000 -v tp08-vol:/data alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c touch /data/ecrit-par-1000 && ls -ln /data
+total 0
+-rw-r--r--    1 1000     1000             0 Oct 30 13:10 ecrit-par-1000
+-rw-r--r--    1 1000     1000             0 Oct 30 13:10 ecrit-par-root
+[code retour 0]
+
+$ docker run --rm --user 1000:1000 -v /Users/alexandre/Desktop/Ynov/M2/Docker/docker/30-10/tp08-hardening/.bind:/data alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c touch /data/x && ls -ln /data
+total 0
+-rw-r--r--    1 1000     1000             0 Oct 30 13:10 x
+[code retour 0]
+  vu depuis le Mac : total 0
+  vu depuis le Mac : -rw-r--r--  1 501  20  0 Oct 30 14:10 x
+
+################ seccomp
+
+$ docker run --rm alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc unshare --user id
+unshare: unshare(0x10000000): Operation not permitted
+[code retour 1]
+
+$ docker run --rm --security-opt seccomp=unconfined alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc unshare --user id
+uid=65534(nobody) gid=65534(nobody) groups=65534(nobody),65534(nobody),65534(nobody),65534(nobody),65534(nobody),65534(nobody),65534(nobody),65534(nobody),65534(nobody),65534(nobody),65534(nobody),65534(nobody)
+[code retour 0]
+
+$ docker run --rm alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc grep Seccomp /proc/self/status
+Seccomp:	2
+Seccomp_filters:	1
+[code retour 0]
+
+$ docker run --rm --security-opt seccomp=unconfined alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc grep Seccomp /proc/self/status
+Seccomp:	0
+Seccomp_filters:	0
+[code retour 0]
+
+$ python3 seccomp_count.py seccomp-default.json  (profil moby/profiles, table ausyscall aarch64)
+appels système connus sur aarch64 (ausyscall) : 325
+autorisés par le profil par défaut avec les capabilities par défaut : 261
+autorisés selon les arguments : 3 (clone, personality, socket)
+bloqués (ERRNO) : 61
+débloqués en plus si CAP_SYS_ADMIN : 25 (bpf, clone, clone3, fanotify_init, fsconfig, fsmount, fsopen, fspick, lookup_dcookie, lsm_get_self_attr, lsm_list_modules, lsm_set_self_attr...)
+exemples bloqués : acct, add_key, bpf, clock_settime, delete_module, fanotify_init, finit_module, fsmount, fsopen, init_module, kexec_load, keyctl, mount, move_mount, open_by_handle_at, open_tree, perf_event_open, pivot_root, quotactl, reboot, request_key, setns, settimeofday, swapoff, swapon, umount2, unshare, userfaultfd

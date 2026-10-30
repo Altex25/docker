@@ -1,0 +1,34 @@
+$ ./audit.sh -p shop   (stack TP04 : compose.yml + compose.hardened.yml, profil tools)
+CONTENEUR              UTILISATEUR PRIVILEGED  DROP   CAP_ADD                              RO     MÉMOIRE  PIDS      NNP    SOCKET  ÉCARTS
+shop-api-1             1000:1000   false       ALL    -                                    true   256M      128       true   -       0
+shop-worker-1          10001:10001 false       ALL    -                                    true   256M      64        true   -       0
+shop-adminer-1         adminer     false       ALL    -                                    true   128M      64        true   -       0
+shop-db-1              70:70       false       ALL    -                                    true   512M      128       true   -       0
+shop-redis-1           999:1000    false       ALL    -                                    true   256M      64        true   -       0
+shop-traefik-1         65534:65534 false       ALL    -                                    true   128M      128       true   -       0
+shop-socket-proxy-1    65534:991   false       ALL    -                                    true   64M       64        true   ~montée 0
+shop-backup-1          !(root)     false       !-     -                                    !false !illimitée !illimité !false -       6
+
+! = écart, ~ = écart accepté (label tp08.audit.accept)
+8 conteneur(s), 6 écart(s), 1 écart(s) accepté(s)
+  cap_drop : 1
+  memory : 1
+  no_new_privs : 1
+  pids : 1
+  read_only : 1
+  user : 1
+[code retour 1]
+
+$ ./audit.sh -p shop -x backup   (sans le sidecar de sauvegarde du TP05, hors périmètre)
+CONTENEUR              UTILISATEUR PRIVILEGED  DROP   CAP_ADD                              RO     MÉMOIRE  PIDS      NNP    SOCKET  ÉCARTS
+shop-api-1             1000:1000   false       ALL    -                                    true   256M      128       true   -       0
+shop-worker-1          10001:10001 false       ALL    -                                    true   256M      64        true   -       0
+shop-adminer-1         adminer     false       ALL    -                                    true   128M      64        true   -       0
+shop-db-1              70:70       false       ALL    -                                    true   512M      128       true   -       0
+shop-redis-1           999:1000    false       ALL    -                                    true   256M      64        true   -       0
+shop-traefik-1         65534:65534 false       ALL    -                                    true   128M      128       true   -       0
+shop-socket-proxy-1    65534:991   false       ALL    -                                    true   64M       64        true   ~montée 0
+
+! = écart, ~ = écart accepté (label tp08.audit.accept)
+7 conteneur(s), 0 écart(s), 1 écart(s) accepté(s)
+[code retour 0]

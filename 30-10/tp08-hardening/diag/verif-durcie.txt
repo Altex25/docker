@@ -1,0 +1,26 @@
+== Effet réel dans chaque conteneur (lu dans /proc et le cgroup, pas dans la config)
+service      uid/gid (id)             CapEff             NoNewPrivs   écriture /    memory.max pids.max
+socket-proxy 65534:991                0000000000000000   1            refusée       67108864   64
+traefik      65534:65534              0000000000000000   1            refusée       134217728  128
+db           70:70                    0000000000000000   1            refusée       536870912  128
+redis        999:1000                 0000000000000000   1            refusée       268435456  64
+api          1000:1000                0000000000000000   1            refusée       268435456  128
+worker       10001:10001              0000000000000000   1            refusée       268435456  64
+adminer      999:999                  0000000000000000   1            refusée       134217728  64
+
+== La socket Docker n'est plus dans Traefik
+ls: /var/run/docker.sock: No such file or directory
+endpoint : tcp://socket-proxy:2375
+
+== Ce que le proxy laisse passer (depuis le réseau socket, comme Traefik)
+  GET    /version                       -> 200
+  GET    /containers/json               -> 200
+  GET    /events?since=0&until=1        -> 200
+  GET    /images/json                   -> 403
+  GET    /info                          -> 403
+  GET    /secrets                       -> 403
+  POST   /containers/create             -> 403
+  DELETE /containers/shop-api-1         -> 403
+  POST   /containers/shop-api-1/exec    -> 403
+réseau shop_socket : internal=true, membres : shop-socket-proxy-1 shop-traefik-1 
+l'API peut-elle joindre le proxy ? non (ENOTFOUND)
